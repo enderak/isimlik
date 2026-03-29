@@ -78,18 +78,21 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                  // 2. Destek uzaması (Sünme - Tabana değme)
-                  // gap kadar havada asılıyız (0.15), yere değmek için (0.2) kadar düşüyoruz (iyice gömülsün)
-                  const yShift = D === 0 ? 0 : - (depthNorm) * (gap + 0.05);
+                 // 2. KADEMELİ TABLAYA YATIRMA (WEDGE TAPER)
+                 // Ön yüz (depthNorm=0) -> Havada asılı (y + baseH + gap)
+                 // Arka yüz (depthNorm=1) -> Tamamen tabla üstünde (baseH)
+                 const yFloating = y + baseH + gap;
+                 const yOnPlate = baseH;
+                 const yFinal = yFloating * (1 - depthNorm) + yOnPlate * depthNorm;
 
                  // 3. Eğim (Tilt) ve İtalik
                  const zShift = - (y * Math.tan(tiltAngleRad));
                  const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
 
-                 positions.setXYZ(i, x + xShift, y + yShift, z + zShift);
+                 positions.setXYZ(i, x + xShift, yFinal, z + zShift);
               }
 
-              self.geometry.translate(0, baseH + gap, 0); // Ana harfle hizalanıp aşağı esniyor
+              // self.geometry.translate(0, baseH + gap, 0); // ARTIK DÖNGÜ İÇİNDE YAPILIYOR
               self.geometry.computeVertexNormals();
               self.geometry.computeBoundingBox();
               self.geometry.userData.morphed = true;
