@@ -15,7 +15,7 @@ export const Scene3D = ({
 
   const baseH = (plateThickness / 10);
   const baseW = textSize[0] + 0.8;
-  const baseD = textSize[2] + 0.8;
+  const baseD = textSize[2] + 1.4; // PLAKA DERİNLİĞİ (Arkada daha fazla pay bırakıyoruz)
 
   const textDepth = isThicknessThick ? 0.6 : 0.2;
   const gap = 0.15; // "Sünme" / Havada kalma boşluğu (1.5mm)
@@ -36,7 +36,7 @@ export const Scene3D = ({
           key={`support-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
           size={1.0}
-          height={6} // DAHA KISA KAM/KUYRUK (Aşırı geriye uzanmaz)
+          height={0.5} // KAMA KUYRUĞU (5mm)
           curveSegments={16}
           bevelEnabled={false}
           onUpdate={(self) => {
@@ -77,8 +77,8 @@ export const Scene3D = ({
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
                  // 2. Destek uzaması (Sünme - Tabana değme)
-                 // Kuyruk kısmı (-6) kadar aşağı inerek masaya temas eder, gereksiz fazla aşağı/geriye inmez.
-                 const yShift = D === 0 ? 0 : - (depthNorm) * 6;
+                 // Kuyruk kısmı (-0.25 birim = 2.5mm) aşağı iner. (gap 1.5mm olduğu için fazlasıyla yeri deler geçer)
+                 const yShift = D === 0 ? 0 : - (depthNorm) * 0.25;
 
                  // 3. Eğim (Tilt) ve İtalik
                  const zShift = - (y * Math.tan(tiltAngleRad));
@@ -159,7 +159,7 @@ export const Scene3D = ({
 
         {/* TABAN PLAKASI */}
         <RoundedBox
-          position={[0, baseH / 2, -3]} // TABANI 3MM GERİYE AL (Böylece harfler öne gelir)
+          position={[0, baseH / 2, -0.2]} // TABANI 2MM GERİ ÇEK (Harfler görsel olarak biraz öne gelir)
           receiveShadow
           args={[baseW, baseH, baseD]}
           radius={0.05}
