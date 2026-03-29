@@ -30,41 +30,96 @@ export const Scene3D = ({
 
       <group ref={groupRef} position={[0, -1, 0]}>
 
-        {/* YAZI ("YAPIŞKAN SÜNME" - WEDGE TRANSFORMATION) */}
+        {/* KATMAN 1: İÇ DESTEK KOLONU (INSET WEDGE) */}
+        {/* Ana harften birazcık daha dar, tabana bağlanıp ana harfin altını dolduran destek yapısı */}
         <Text3D
-          key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
+          key={`support-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
           size={1.0}
           height={textDepth}
           curveSegments={16}
-          bevelEnabled={false} // Keskin siluet için bevel kapalı
+          bevelEnabled={false}
           onUpdate={(self) => {
             if (!self.geometry.userData.morphed) {
-              // 1. Önce TextGeometry'nin sınırlarını bulup X ve Z'de merkeze, Y'de 0'a oturtuyoruz
               self.geometry.computeBoundingBox();
               let bbox = self.geometry.boundingBox;
               self.geometry.translate(
-                -(bbox.max.x + bbox.min.x) / 2, // X ekseninde merkez
-                -bbox.min.y,                    // Y ekseninde tabanı 0'a hizala
-                -(bbox.max.z + bbox.min.z) / 2  // Z ekseninde merkez
+                -(bbox.max.x + bbox.min.x) / 2, 
+                -bbox.min.y,                    
+                -(bbox.max.z + bbox.min.z) / 2  
               );
 
-              // 2. Normalize edilmiş ölçüleri al
               self.geometry.computeBoundingBox();
               bbox = self.geometry.boundingBox;
-              const minY = bbox.min.y;
-              const maxY = bbox.max.y;
-              const H = maxY - minY;
-              
-              const minZ = bbox.min.z; 
               const maxZ = bbox.max.z; 
-              const D = maxZ - minZ; // Harfin extrude kalınlığı (textDepth)
+              const minZ = bbox.min.z;
+              const D = maxZ - minZ;
 
-              // Orijinal Noktalar ve Normalleri Bloom için hazırlıyoruz
               const positions = self.geometry.attributes.position;
-              self.geometry.computeVertexNormals(); // Yumuşak Bloom'u dışa doğru şişirmek için
+              self.geometry.computeVertexNormals();
               const normals = self.geometry.attributes.normal;
 
+              const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
+              const italicAngleRad = THREE.MathUtils.degToRad(12);
+              
+              const INSET_AMOUNT = -0.06; // Ana harften ~0.6mm daha dar (içte kalması için)
+
+              for(let i = 0; i < positions.count; i++) {
+                 // 1. Normal (Yüzey yönü) ekseninde içe doğru (negatif) daraltma
+                 const nx = normals.getX(i);
+                 const nz = normals.getZ(i);
+
+                 const x = positions.getX(i) + (nx * INSET_AMOUNT);
+                 const y = positions.getY(i);
+                 const z = positions.getZ(i) + (nz * INSET_AMOUNT);
+
+                 const absZ = Math.abs(maxZ - positions.getZ(i)); 
+                 const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
+
+                 // 2. Destek uzaması (Sünme - Tabana değme)
+                 // Arka alt yüzey (-gap) kadar aşağı inip masaya (baseH) değer, ön yüzey 0'da kalır ana harfin altına tutunur
+                 const yShift = D === 0 ? 0 : - (depthNorm) * gap;
+
+                 // 3. Eğim (Tilt) ve İtalik
+                 const zShift = - (y * Math.tan(tiltAngleRad));
+                 const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
+
+                 positions.setXYZ(i, x + xShift, y + yShift, z + zShift);
+              }
+
+              self.geometry.translate(0, baseH + gap, 0); // Ana harfle hizalanıp aşağı esniyor
+              self.geometry.computeVertexNormals();
+              self.geometry.computeBoundingBox();
+              self.geometry.userData.morphed = true;
+              positions.needsUpdate = true;
+            }
+          }}
+        >
+          {text || "73"}
+          <meshStandardMaterial color={materialColor} roughness={0.4} metalness={0.1} />
+        </Text3D>
+
+        {/* KATMAN 2: ANA HARF (FLOATING SHIELD) */}
+        {/* Havada asılı duran, 100% orijinal boyutlu ve sıfır bozulmalı asıl harflar */}
+        <Text3D
+          key={`main-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
+          font="/fonts/optimer_bold.typeface.json"
+          size={1.0}
+          height={textDepth}
+          curveSegments={16}
+          bevelEnabled={false}
+          onUpdate={(self) => {
+            if (!self.geometry.userData.morphed) {
+              self.geometry.computeBoundingBox();
+              let bbox = self.geometry.boundingBox;
+              self.geometry.translate(
+                -(bbox.max.x + bbox.min.x) / 2, 
+                -bbox.min.y,                    
+                -(bbox.max.z + bbox.min.z) / 2  
+              );
+
+              const positions = self.geometry.attributes.position;
+              
               const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
               const italicAngleRad = THREE.MathUtils.degToRad(12);
               
@@ -73,41 +128,14 @@ export const Scene3D = ({
                  const y = positions.getY(i);
                  const z = positions.getZ(i);
 
-                 const absZ = Math.abs(maxZ - z); 
-                 const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
-                 const heightNormInverse = H === 0 ? 0 : (maxY - y) / H; // Tepe=0. Alt zemin=1.
-
-                 // === VİSKOZ BLOOM (BAL GİBİ SÜNEN YAYILMA EFEKTİ) ===
-                 // Sadece harfin arkasının alt kısmı tabana değdiği için o noktada şellale gibi (organik) yayılsın!
-                 // Havada kalan ön-alt kısımlar sivilce/tümör gibi şişmesin diye `depthNorm * heightNormInverse` ile sadece ORAYA odaklıyoruz.
-                 const contactProximity = depthNorm * heightNormInverse; 
-                 
-                 // Eğrisel bir yayılımla (sadece son 1-2 mm'de sert bir şişme, "damla" geçişi)
-                 const bloomPower = Math.pow(contactProximity, 5); 
-                 const bloomIntensity = 0.5; // (Birimi MM cinsinden genişleme gücü; max 0.5 birim şişkinlik)
-
-                 const nx = normals.getX(i);
-                 const nz = normals.getZ(i); 
-
-                 const xBloom = nx * bloomPower * bloomIntensity;
-                 const zBloom = nz * bloomPower * bloomIntensity;
-
-                 // Şişmiş haldeki lokal koordinatlar
-                 const bX = x + xBloom;
-                 const bZ = z + zBloom;
-
-                 // === AFFINE TRANSFORMATION (DOĞRUSAL KAMA VE YATMA) MATRİSİ ===
-                 const yShift = D === 0 ? 0 : - (depthNorm) * gap;
+                 // SAF affine yatıklık (Sünme YOK, her yanı havada)
                  const zShift = - (y * Math.tan(tiltAngleRad));
                  const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
 
-                 // Yeni konumları ayarla (Şişmiş X ve Z'ye Affine kaymaları ekle)
-                 positions.setXYZ(i, bX + xShift, y + yShift, bZ + zShift);
+                 positions.setXYZ(i, x + xShift, y, z + zShift);
               }
 
-              // 4. Transformasyon sonrası bütünü havaya (baseH + gap) kaldırıyoruz.
-              // Ön alt kenar (yShift=0) -> baseH + gap seviyesinde HAVADA asılı kalır.
-              // Arka alt kenar (yShift=-gap) -> baseH + gap - gap = baseH. Tam tabloya DEĞER!
+              // gap kadar BÜTÜN HARFİ havaya taşı (altı boşluk olacak, boşluğu Destek Kolonu dolduracak)
               self.geometry.translate(0, baseH + gap, 0);
 
               self.geometry.computeVertexNormals();
@@ -115,7 +143,7 @@ export const Scene3D = ({
               self.geometry.userData.morphed = true;
               positions.needsUpdate = true;
 
-              // 5. Taban plakasını ölçülere göre genişlet
+              // Taban plakasını ölçülere göre genişlet
               const fbox = self.geometry.boundingBox;
               setTextSize([
                 fbox.max.x - fbox.min.x,
@@ -126,11 +154,7 @@ export const Scene3D = ({
           }}
         >
           {text || "73"}
-          <meshStandardMaterial
-            color={materialColor}
-            roughness={0.4}
-            metalness={0.1}
-          />
+          <meshStandardMaterial color={materialColor} roughness={0.4} metalness={0.1} />
         </Text3D>
 
         {/* TABAN PLAKASI */}
