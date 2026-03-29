@@ -15,10 +15,10 @@ export const SettingsCard = ({
   const { t, i18n } = useTranslation();
 
   const colors = [
+    { value: '#22C55E', label: 'Sakarya Green' }, // Açık Yeşil
+    { value: '#0F172A', label: 'Sakarya Black' }, // Siyah
     { value: '#3B82F6', label: 'Blue' },   // Mavi
-    { value: '#4ADE80', label: 'Green' },  // Açık Yeşil (Sakarya)
     { value: '#FBBF24', label: 'Yellow' }, // Sarı
-    { value: '#334155', label: 'Dark' },   // Koyu Gri
     { value: '#F87171', label: 'Coral' },  // Mercan
   ];
 
@@ -38,7 +38,7 @@ export const SettingsCard = ({
         <label className="text-[11px] font-bold text-slate-500">{t('language')}</label>
         <div className="relative">
           <select 
-            className="w-full bg-white border border-slate-200/80 text-sm text-slate-700 py-3 px-4 rounded-xl appearance-none outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all cursor-pointer"
+            className="w-full bg-white border border-slate-200/80 text-sm text-slate-700 py-3 px-4 rounded-xl appearance-none outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50/50 transition-all cursor-pointer"
             value={i18n.language}
             onChange={(e) => i18n.changeLanguage(e.target.value)}
           >
@@ -57,7 +57,7 @@ export const SettingsCard = ({
         <input 
           value={text}
           onChange={(e) => setText(e.target.value.toLocaleUpperCase('tr-TR'))}
-          className="w-full bg-white border border-slate-200/80 text-sm text-slate-800 py-3 px-4 rounded-xl outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all shadow-sm shadow-slate-100/50"
+          className="w-full bg-white border border-slate-200/80 text-sm text-slate-800 py-3 px-4 rounded-xl outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50/50 transition-all shadow-sm shadow-slate-100/50"
           placeholder={t('placeholder')}
         />
       </div>
@@ -100,7 +100,7 @@ export const SettingsCard = ({
                onClick={() => setIsItalic(!isItalic)}>
             <span className="text-xs text-slate-700 font-medium">{t('italic')}</span>
             <div className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors duration-300 ${
-              isItalic ? 'bg-blue-500' : 'bg-slate-200'
+              isItalic ? 'bg-emerald-600' : 'bg-slate-200'
             }`}>
               <div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300 ${
                 isItalic ? 'translate-x-4' : 'translate-x-0'
@@ -119,7 +119,7 @@ export const SettingsCard = ({
               key={color.value}
               onClick={() => setMaterialColor(color.value)}
               className={`w-9 h-9 rounded-full relative transition-transform hover:scale-105 ${
-                materialColor === color.value ? 'ring-2 ring-offset-2 ring-blue-400' : ''
+                materialColor === color.value ? 'ring-2 ring-offset-2 ring-emerald-500' : ''
               }`}
               style={{ backgroundColor: color.value }}
               aria-label={color.label}
@@ -141,7 +141,7 @@ export const SettingsCard = ({
             min="2" max="10" step="0.5"
             value={plateThickness}
             onChange={(e) => setPlateThickness(parseFloat(e.target.value))}
-            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 outline-none"
+            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 outline-none"
           />
         </div>
 
@@ -156,7 +156,7 @@ export const SettingsCard = ({
             min="0" max="45" step="1"
             value={tiltAngle}
             onChange={(e) => setTiltAngle(parseInt(e.target.value))}
-            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600 outline-none"
+            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 outline-none"
           />
         </div>
       </div>
@@ -164,7 +164,7 @@ export const SettingsCard = ({
       {/* Export Button */}
       <button 
         onClick={onExport}
-        className="w-full mt-2 bg-[#3B82F6] hover:bg-blue-600 active:bg-blue-700 text-white shadow-lg shadow-blue-500/20 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-sm"
+        className="w-full mt-2 bg-[#059669] hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-lg shadow-emerald-500/20 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-sm"
       >
         <Download size={18} />
         {t('export_btn')}

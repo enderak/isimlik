@@ -10,7 +10,7 @@ const App = () => {
   const [text, setText] = useState('73');
   const [isItalic, setIsItalic] = useState(false);
   const [isThicknessThick, setIsThicknessThick] = useState(true);
-  const [materialColor, setMaterialColor] = useState('#3B82F6'); // Default Blue
+  const [materialColor, setMaterialColor] = useState('#22C55E'); // Default Sakarya Green
   const [plateThickness, setPlateThickness] = useState(4.5);
   const [tiltAngle, setTiltAngle] = useState(15);
   const groupRef = useRef();
@@ -22,7 +22,7 @@ const App = () => {
       {/* Top Navigation */}
       <header className="px-6 py-4 flex justify-between items-center w-full max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+          <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-600/20">
             <Beaker size={20} />
           </div>
           <h1 className="font-bold tracking-tight text-lg text-slate-800">
@@ -76,7 +76,7 @@ const App = () => {
               rel="noopener noreferrer"
               className="group flex flex-col items-center gap-1.5"
             >
-              <div className="text-xl font-black tracking-[0.2em] text-slate-800 group-hover:text-blue-500 transition-colors">
+              <div className="text-xl font-black tracking-[0.2em] text-slate-900 group-hover:text-emerald-600 transition-colors">
                 SAKRAD
               </div>
               <div className="text-[10px] font-semibold tracking-wider text-slate-500 max-w-[280px]">
