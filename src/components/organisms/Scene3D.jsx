@@ -40,60 +40,61 @@ export const Scene3D = ({
           bevelEnabled={false} // Keskin siluet için bevel kapalı
           onUpdate={(self) => {
             if (!self.geometry.userData.morphed) {
-              
-              // 1. Önce TextGeometry'nin sınırlarını bulup X ve Z'de merkeze, Y'de 0'a oturtuyoruz (Center bileşeni bypass edildi)
+              // 1. Önce TextGeometry'nin sınırlarını bulup X ve Z'de merkeze, Y'de 0'a oturtuyoruz
               self.geometry.computeBoundingBox();
               let bbox = self.geometry.boundingBox;
               self.geometry.translate(
-                -(bbox.max.x + bbox.min.x) / 2, // X ekseninde merkezde
+                -(bbox.max.x + bbox.min.x) / 2, // X ekseninde merkez
                 -bbox.min.y,                    // Y ekseninde tabanı 0'a hizala
-                -(bbox.max.z + bbox.min.z) / 2  // Z ekseninde merkezde
+                -(bbox.max.z + bbox.min.z) / 2  // Z ekseninde merkez
               );
 
-              // 2. 0'a hizalanmış güncel hacmi al
+              // 2. Normalize edilmiş ölçüleri al
               self.geometry.computeBoundingBox();
               bbox = self.geometry.boundingBox;
               const minY = bbox.min.y;
-              const maxY = bbox.max.y;
-              const H = maxY - minY;
-
-              const minZ = bbox.min.z; // Arka Yüz (negatif derinlik)
-              const maxZ = bbox.max.z; // Ön Yüz (0 civarı)
-              const D = maxZ - minZ;
+              
+              const minZ = bbox.min.z; 
+              const maxZ = bbox.max.z; 
+              const D = maxZ - minZ; // Harfin extrude kalınlığı (textDepth)
 
               const positions = self.geometry.attributes.position;
 
               const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
-              const maxZShift = H * Math.tan(tiltAngleRad);
-
               const italicAngleRad = THREE.MathUtils.degToRad(12);
-              const maxXShift = H * Math.tan(italicAngleRad);
 
+              // 3. PÜRÜZSÜZ LİNEER (AFFINE) MATRİS DÖNÜŞÜMÜ
+              // Önceki koddaki çarpık "testere dişi" kıvrımlarının sebebi non-lineer (Y*Z) bir formül kullanmamdı.
+              // Formülü tamamen Saf Geometrik Shear (Kayma) matrisine çevirdik. Yüzeyler 100% pürüzsüz ve düz kalacak.
+              
               for(let i = 0; i < positions.count; i++) {
                  const x = positions.getX(i);
                  const y = positions.getY(i);
                  const z = positions.getZ(i);
 
-                 const depthNorm = D === 0 ? 0 : (maxZ - z) / D;     // Ön yüz(0) -> Arka yüz(1)
-                 const heightNorm = H === 0 ? 0 : (maxY - y) / H;      // Üst tepe(0) -> Alt taban(1)
+                 // z 0'dan (Ön yüz) -D'ye (Arka yüz) doğru gider. absZ = derinlikteki mesafe.
+                 const absZ = Math.abs(maxZ - z); 
 
-                 // 3a. KAMA (Wedge) DÖNÜŞÜMÜ: Sadece arka alt taraf geriye doğru uzar
-                 const zShift = - (Math.pow(depthNorm, 0.8) * heightNorm * maxZShift);
+                 // A) Y-Shear (Sünme): Derinliğe (Z'ye) bağlı olarak aşağı doğru kayma.
+                 // Ön yüz (absZ=0) -> 0. 
+                 // Arka yüz (absZ=D) -> harita -gap kadar aşağı iner.
+                 const yShift = D === 0 ? 0 : - (absZ / D) * gap;
 
-                 // 3b. SÜNME / YAPIŞMA EFEKTİ: 
-                 // Harf havada kalacağı için (gap kadar), sadece arka noktaları o gap kadar aşağı çekip tabana yapıştırıyoruz.
-                 const yShift = - (Math.pow(depthNorm, 0.8) * heightNorm * gap);
+                 // B) Z-Shear (Eğim/Tilt): Yüksekliğe (Y'ye) bağlı olarak geriye doğru kayma.
+                 // Alt kısım (y=0) -> 0. 
+                 // Üst kısım -> geriye doğru yatar.
+                 const zShift = - (y * Math.tan(tiltAngleRad));
 
-                 // 3c. İTALİK DÖNÜŞÜM: Normal eğiklik
-                 const heightNormInverted = H === 0 ? 0 : (y - minY) / H;
-                 const xShift = isItalic ? (heightNormInverted * maxXShift) : 0;
+                 // C) X-Shear (İtalik): Yüksekliğe bağlı olarak sağa kayma.
+                 const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
 
+                 // Noktaları yeni lineer koordinatlarına taşıyoruz.
                  positions.setXYZ(i, x + xShift, y + yShift, z + zShift);
               }
 
-              // 4. Dönüşümden sonra havaya (baseH + gap) seviyesine taşıyoruz.
-              // Ön yüz yShift=0 olduğu için havada (gap kadar asılı) kalır.
-              // Arka alt yüz yShift=-gap olduğu için baseH (0 hizası) seviyesine inip tam tablaya değer.
+              // 4. Transformasyon sonrası bütünü havaya (baseH + gap) kaldırıyoruz.
+              // Ön alt kenar (yShift=0) -> baseH + gap seviyesinde HAVADA asılı kalır.
+              // Arka alt kenar (yShift=-gap) -> baseH + gap - gap = baseH. Tam tabloya DEĞER!
               self.geometry.translate(0, baseH + gap, 0);
 
               self.geometry.computeVertexNormals();
@@ -101,7 +102,7 @@ export const Scene3D = ({
               self.geometry.userData.morphed = true;
               positions.needsUpdate = true;
 
-              // 5. Taban plakasını ölçülere göre genişletmesi için ebatları bildir
+              // 5. Taban plakasını ölçülere göre genişlet
               const fbox = self.geometry.boundingBox;
               setTextSize([
                 fbox.max.x - fbox.min.x,
