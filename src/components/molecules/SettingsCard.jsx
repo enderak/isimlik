@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from "../atoms/Button";
 import { Download, Globe } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 
 export const SettingsCard = ({ 
   text, setText, 
@@ -11,6 +12,8 @@ export const SettingsCard = ({
   tiltAngle, setTiltAngle,
   onExport 
 }) => {
+  const { t, i18n } = useTranslation();
+
   const colors = [
     { value: '#3B82F6', label: 'Blue' },   // Mavi
     { value: '#4ADE80', label: 'Green' },  // Açık Yeşil (Sakarya)
@@ -24,22 +27,25 @@ export const SettingsCard = ({
       
       {/* Header */}
       <div>
-        <h2 className="text-slate-800 font-bold text-lg leading-tight">Oluşturucu Ayarları</h2>
+        <h2 className="text-slate-800 font-bold text-lg leading-tight">{t('settings_title')}</h2>
         <p className="text-xs text-slate-400 font-medium tracking-tight mt-1">
-          3D yazdırılabilir isimliğinizi özelleştirin
+          {t('settings_desc')}
         </p>
       </div>
 
       {/* Language / Dil */}
       <div className="flex flex-col gap-2">
-        <label className="text-[11px] font-bold text-slate-500">Dil</label>
+        <label className="text-[11px] font-bold text-slate-500">{t('language')}</label>
         <div className="relative">
           <select 
             className="w-full bg-white border border-slate-200/80 text-sm text-slate-700 py-3 px-4 rounded-xl appearance-none outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all cursor-pointer"
-            defaultValue="TR"
+            value={i18n.language}
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
           >
             <option value="TR">Türkçe (TR)</option>
             <option value="EN">English (EN)</option>
+            <option value="DE">Deutsch (DE)</option>
+            <option value="AZ">Azərbaycanca (AZ)</option>
           </select>
           <Globe size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         </div>
@@ -47,12 +53,12 @@ export const SettingsCard = ({
 
       {/* Text Input */}
       <div className="flex flex-col gap-2">
-        <label className="text-[11px] font-bold text-slate-500">Etiket Metni</label>
+        <label className="text-[11px] font-bold text-slate-500">{t('label_text')}</label>
         <input 
           value={text}
           onChange={(e) => setText(e.target.value.toLocaleUpperCase('tr-TR'))}
           className="w-full bg-white border border-slate-200/80 text-sm text-slate-800 py-3 px-4 rounded-xl outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50/50 transition-all shadow-sm shadow-slate-100/50"
-          placeholder="Örn: 73"
+          placeholder={t('placeholder')}
         />
       </div>
 
@@ -60,7 +66,7 @@ export const SettingsCard = ({
       <div className="flex justify-between gap-4">
         {/* Yazı Kalınlığı */}
         <div className="flex-1 flex flex-col gap-2">
-          <label className="text-[11px] font-bold text-slate-500">Yazı Kalınlığı</label>
+          <label className="text-[11px] font-bold text-slate-500">{t('font_weight')}</label>
           <div className="bg-slate-100/80 p-1 rounded-xl flex items-center h-11 w-full relative">
             {/* Sliding Background */}
             <div 
@@ -74,7 +80,7 @@ export const SettingsCard = ({
                 isThicknessThick ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              KALIN
+              {t('thick')}
             </button>
             <button 
               onClick={() => setIsThicknessThick(false)}
@@ -82,17 +88,17 @@ export const SettingsCard = ({
                 !isThicknessThick ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
-              İNCE
+              {t('thin')}
             </button>
           </div>
         </div>
 
         {/* Dönüştürme (İtalik) */}
         <div className="flex-1 flex flex-col gap-2">
-          <label className="text-[11px] font-bold text-slate-500">Dönüştürme</label>
+          <label className="text-[11px] font-bold text-slate-500">{t('transform')}</label>
           <div className="bg-white border border-slate-200/80 rounded-xl flex items-center justify-between px-4 h-11 cursor-pointer shadow-sm shadow-slate-100/50"
                onClick={() => setIsItalic(!isItalic)}>
-            <span className="text-xs text-slate-700 font-medium">İtalik</span>
+            <span className="text-xs text-slate-700 font-medium">{t('italic')}</span>
             <div className={`w-9 h-5 rounded-full flex items-center px-0.5 transition-colors duration-300 ${
               isItalic ? 'bg-blue-500' : 'bg-slate-200'
             }`}>
@@ -106,7 +112,7 @@ export const SettingsCard = ({
 
       {/* Filaman Rengi */}
       <div className="flex flex-col gap-3">
-        <label className="text-[11px] font-bold text-slate-500">Filaman Rengi</label>
+        <label className="text-[11px] font-bold text-slate-500">{t('filament_color')}</label>
         <div className="flex gap-3">
           {colors.map((color) => (
             <button
@@ -127,7 +133,7 @@ export const SettingsCard = ({
         {/* Plaka Kalınlığı */}
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
-            <span>PLAKA KALINLIĞI</span>
+            <span>{t('plate_thickness')}</span>
             <span>{plateThickness.toFixed(1)}mm</span>
           </div>
           <input 
@@ -142,7 +148,7 @@ export const SettingsCard = ({
         {/* Eğim Açısı */}
         <div className="flex flex-col gap-3">
           <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
-            <span>EĞİM AÇISI</span>
+            <span>{t('tilt_angle')}</span>
             <span>{tiltAngle}°</span>
           </div>
           <input 
@@ -161,7 +167,7 @@ export const SettingsCard = ({
         className="w-full mt-2 bg-[#3B82F6] hover:bg-blue-600 active:bg-blue-700 text-white shadow-lg shadow-blue-500/20 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-sm"
       >
         <Download size={18} />
-        STL DOSYASI OLARAK ÇIKAR
+        {t('export_btn')}
       </button>
 
     </div>

@@ -4,6 +4,7 @@ import { Scene3D } from './components/organisms/Scene3D';
 import { SettingsCard } from './components/molecules/SettingsCard';
 import { handleExport } from './utils/exportUtils';
 import { Settings, User, Lightbulb, Search, RefreshCcw, Grid, Beaker } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const App = () => {
   const [text, setText] = useState('73');
@@ -13,6 +14,7 @@ const App = () => {
   const [plateThickness, setPlateThickness] = useState(4.5);
   const [tiltAngle, setTiltAngle] = useState(15);
   const groupRef = useRef();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen w-full bg-[#f4f5f8] flex flex-col font-sans text-slate-900 pb-24 md:pb-0 relative overflow-x-hidden">
@@ -24,7 +26,7 @@ const App = () => {
             <Beaker size={20} />
           </div>
           <h1 className="font-bold tracking-tight text-lg text-slate-800">
-            3D Nameplate Studio
+            {t('title')}
           </h1>
         </div>
         <div className="flex items-center gap-4">
@@ -62,7 +64,7 @@ const App = () => {
           <div className="bg-[#FEF5E7] p-4 rounded-xl shadow-sm border border-orange-100/50 flex gap-3 text-sm text-amber-800/80 w-full max-w-sm">
             <Lightbulb size={20} className="text-amber-700 shrink-0 mt-0.5" />
             <p className="leading-snug text-[13px]">
-              <span className="font-bold text-amber-900">İpucu:</span> {tiltAngle} derecelik bir eğim, desteklere ihtiyaç duymadan FDM baskı için yapısal kararlılığı artırır.
+              {t('tip', { angle: tiltAngle })}
             </p>
           </div>
 
@@ -76,7 +78,7 @@ const App = () => {
             >
               SAKRAD - SAKARYA AMATÖR TELSİZCİLER VE RADYO AMATÖRLERİ DERNEĞİ
             </a>
-            <span className="text-[10px] text-slate-400 font-medium">Geliştirici TA2NLE</span>
+            <span className="text-[10px] text-slate-400 font-medium">{t('developer')} TA2NLE</span>
           </footer>
         </div>
 
@@ -89,7 +91,7 @@ const App = () => {
             {/* Status Chip */}
             <div className="flex items-center gap-2 bg-slate-50/90 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-200 pointer-events-auto shadow-sm">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">DIŞA AKTARIMA HAZIR</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">{t('export_ready')}</span>
             </div>
 
             <div className="flex items-center gap-4 pointer-events-auto">
@@ -132,7 +134,7 @@ const App = () => {
              <div className="w-10 h-10 rounded-full border border-dashed border-slate-400 flex items-center justify-center pointer-events-auto cursor-pointer">
                <span className="text-[10px] font-bold">3D</span>
              </div>
-             <span className="text-[8px] uppercase font-bold tracking-widest">Yörünge Modu</span>
+             <span className="text-[8px] uppercase font-bold tracking-widest">{t('orbit_mode')}</span>
           </div>
 
         </div>
