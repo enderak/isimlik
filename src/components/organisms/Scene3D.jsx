@@ -14,11 +14,13 @@ export const Scene3D = ({
   const [textSize, setTextSize] = useState([6, 0.6, 0.6]);
 
   const baseH = (plateThickness / 10);
-  const baseW = textSize[0] + 0.8;
-  const baseD = textSize[2] + 1.4; // PLAKA DERİNLİĞİ (Arkada daha fazla pay bırakıyoruz)
+  const textDepth = isThicknessThick ? 0.35 : 0.2; // Harf et kalınlığı azaltıldı
+  const supportHeight = 0.45; // Destek takozu 4.5mm
+  const gap = 0.15; // 1.5mm hava payı
 
-  const textDepth = isThicknessThick ? 0.6 : 0.2;
-  const gap = 0.15; // "Sünme" / Havada kalma boşluğu (1.5mm)
+  const baseW = textSize[0] + 0.8;
+  const baseD = textDepth + supportHeight + 0.6; // Plaka derinliği artık harf + desteğe göre otomatik
+  const baseCenterZ = -(textDepth + supportHeight) / 2; // Plakanın merkezini harflerin altına hizala
 
   return (
     <>
@@ -36,7 +38,7 @@ export const Scene3D = ({
           key={`support-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
           size={1.0}
-          height={0.5} // KAMA KUYRUĞU (5mm)
+          height={supportHeight} // 4.5mm kuyruk
           curveSegments={16}
           bevelEnabled={false}
           onUpdate={(self) => {
@@ -76,9 +78,9 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                 // 2. Destek uzaması (Sünme - Tabana değme)
-                 // Kuyruk kısmı (-0.25 birim = 2.5mm) aşağı iner. (gap 1.5mm olduğu için fazlasıyla yeri deler geçer)
-                 const yShift = D === 0 ? 0 : - (depthNorm) * 0.25;
+                  // 2. Destek uzaması (Sünme - Tabana değme)
+                  // gap kadar havada asılıyız (0.15), yere değmek için (0.2) kadar düşüyoruz (iyice gömülsün)
+                  const yShift = D === 0 ? 0 : - (depthNorm) * (gap + 0.05);
 
                  // 3. Eğim (Tilt) ve İtalik
                  const zShift = - (y * Math.tan(tiltAngleRad));
@@ -159,7 +161,7 @@ export const Scene3D = ({
 
         {/* TABAN PLAKASI */}
         <RoundedBox
-          position={[0, baseH / 2, -0.2]} // TABANI 2MM GERİ ÇEK (Harfler görsel olarak biraz öne gelir)
+          position={[0, baseH / 2, baseCenterZ]} // DİNAMİK MERKEZLEME
           receiveShadow
           args={[baseW, baseH, baseD]}
           radius={0.05}
