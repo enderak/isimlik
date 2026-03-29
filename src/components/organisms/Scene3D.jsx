@@ -36,7 +36,7 @@ export const Scene3D = ({
           key={`support-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
           size={1.0}
-          height={textDepth}
+          height={15} // DERİN EXTURZYON (KAMA KUYRUĞU)
           curveSegments={16}
           bevelEnabled={false}
           onUpdate={(self) => {
@@ -46,7 +46,7 @@ export const Scene3D = ({
               self.geometry.translate(
                 -(bbox.max.x + bbox.min.x) / 2, 
                 -bbox.min.y,                    
-                -(bbox.max.z + bbox.min.z) / 2  
+                -bbox.max.z // FRONT FACE TO Z=0
               );
 
               self.geometry.computeBoundingBox();
@@ -77,8 +77,8 @@ export const Scene3D = ({
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
                  // 2. Destek uzaması (Sünme - Tabana değme)
-                 // Arka alt yüzey (-gap) kadar aşağı inip masaya (baseH) değer, ön yüzey 0'da kalır ana harfin altına tutunur
-                 const yShift = D === 0 ? 0 : - (depthNorm) * gap;
+                 // Kuyruk kısmı (-15) kadar aşağı inerek masayı kesin delip geçer, havada kalan "3" gibi eğriler de mecburen yere yapışır.
+                 const yShift = D === 0 ? 0 : - (depthNorm) * 15;
 
                  // 3. Eğim (Tilt) ve İtalik
                  const zShift = - (y * Math.tan(tiltAngleRad));
@@ -115,7 +115,7 @@ export const Scene3D = ({
               self.geometry.translate(
                 -(bbox.max.x + bbox.min.x) / 2, 
                 -bbox.min.y,                    
-                -(bbox.max.z + bbox.min.z) / 2  
+                -bbox.max.z // FRONT FACE TO Z=0
               );
 
               const positions = self.geometry.attributes.position;
