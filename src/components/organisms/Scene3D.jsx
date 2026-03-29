@@ -18,7 +18,7 @@ export const Scene3D = ({
   const supportHeight = 0.8; // Daha belirgin bir ramp (8mm)
   const gap = 0.15; // 1.5mm hava payı
 
-  const baseW = textSize[0] + 0.8;
+  const baseW = textSize[0] + 1.2; // Yanlardaki pah yayılması için tabanı biraz daha genişlettik
   const baseD = 1.8; // Genişletilmiş plato (18mm)
   const baseCenterZ = -0.6; // Hizalama düzeltildi
 
@@ -78,14 +78,17 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                 // 2. EKSTREM KIVRIMLI KISA DİRSEK (TIGHT RADIUS FILLET)
-                 // Çok daha kısa mesafede, daha agresif ve "kıvrımlı" geçiş.
+                 // 2. ÇOK AÇILI YUMUŞAK DİRSEK + YANAL PAH (TAPERED SOFT RADIUS)
                  const startAngle = tiltAngleRad;
                  const endAngle = Math.PI / 2;
-                 const curve = Math.pow(depthNorm, 0.7); // 0.7 ile kavisli ve esnek başlangıç
+                 const curve = 1 - Math.cos(depthNorm * Math.PI / 2); 
                  const currentAngle = startAngle + (endAngle - startAngle) * curve; 
                  
                  const currentGap = gap * (1 - curve);
+
+                 // YANAL GENİŞLEME (Pah Etkisi): Masaya yaklaştıkça yanlara %25 yayıl
+                 const taperFactor = 1 + (curve * 0.0) + ((1 - curve) * 0.25);
+                 const xTapered = x * taperFactor;
 
                  // ROTASYONEL DÖNÜŞ (Sırtı masaya yatırıyoruz)
                  const yFinal = y * Math.cos(currentAngle) + baseH + currentGap;
@@ -94,7 +97,7 @@ export const Scene3D = ({
                  // 3. İtalik (X ekseni kayması)
                  const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
 
-                 positions.setXYZ(i, x + xShift, yFinal, z + zShift);
+                 positions.setXYZ(i, xTapered + xShift, yFinal, z + zShift);
               }
 
               // self.geometry.translate(0, baseH + gap, 0); // ARTIK DÖNGÜ İÇİNDE YAPILIYOR
