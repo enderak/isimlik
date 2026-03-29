@@ -14,13 +14,13 @@ export const Scene3D = ({
   const [textSize, setTextSize] = useState([6, 0.6, 0.6]);
 
   const baseH = (plateThickness / 10);
-  const textDepth = isThicknessThick ? 0.35 : 0.2; // Harf et kalınlığı azaltıldı
-  const supportHeight = 0.45; // Destek takozu 4.5mm
+  const textDepth = isThicknessThick ? 0.3 : 0.15; // Daha zarif (3mm / 1.5mm)
+  const supportHeight = 0.8; // Daha belirgin bir ramp (8mm)
   const gap = 0.15; // 1.5mm hava payı
 
   const baseW = textSize[0] + 0.8;
-  const baseD = textDepth + supportHeight + 0.6; // Plaka derinliği artık harf + desteğe göre otomatik
-  const baseCenterZ = -(textDepth + supportHeight) / 2; // Plakanın merkezini harflerin altına hizala
+  const baseD = 2.2; // Sabit ve geniş bir derinlik (22mm)
+  const baseCenterZ = -0.6; // Tablayı harf ve desteğin tam altına sabitle (Öpüşme garantili)
 
   return (
     <>
@@ -38,7 +38,7 @@ export const Scene3D = ({
           key={`support-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
           size={1.0}
-          height={supportHeight} // 4.5mm kuyruk
+          height={supportHeight} // 8mm ramp
           curveSegments={16}
           bevelEnabled={false}
           onUpdate={(self) => {
