@@ -1,38 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import { Text3D, Center, PerspectiveCamera, OrbitControls, RoundedBox } from '@react-three/drei';
+import { Text3D, PerspectiveCamera, OrbitControls, RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 
-export const Scene3D = ({ 
-  text, 
-  isItalic, 
+export const Scene3D = ({
+  text,
+  isItalic,
   groupRef,
   isThicknessThick,
   materialColor,
   plateThickness,
   tiltAngle
 }) => {
-  const [textSize, setTextSize] = useState([6, 0.6, 0.6]); 
+  const [textSize, setTextSize] = useState([6, 0.6, 0.6]);
 
-  const handleCentered = (props) => {
-    const { width, height, depth } = props;
-    if (width && width > 0) {
-      setTextSize(prev => {
-        if (
-          Math.abs(prev[0] - width) < 0.001 &&
-          Math.abs(prev[1] - height) < 0.001 &&
-          Math.abs(prev[2] - depth) < 0.001
-        ) return prev; 
-        return [width, height, depth];
-      });
-    }
-  };
+  const baseH = (plateThickness / 10);
+  const baseW = textSize[0] + 0.8;
+  const baseD = textSize[2] + 0.8;
 
-  const baseH = (plateThickness / 10); 
-  const baseW = textSize[0] + 0.8; 
-  // Wedge transform hesaplanan derinliği bbox'a yansıyacağı için, plate ona göre büyüyecektir.
-  const baseD = textSize[2] + 0.8; 
-
-  const textDepth = isThicknessThick ? 0.6 : 0.2; 
+  const textDepth = isThicknessThick ? 0.6 : 0.2;
+  const gap = 0.15; // "Sünme" / Havada kalma boşluğu (1.5mm)
 
   return (
     <>
@@ -43,84 +29,106 @@ export const Scene3D = ({
       <pointLight position={[10, 10, 10]} intensity={1.2} castShadow />
 
       <group ref={groupRef} position={[0, -1, 0]}>
-        
-        {/* YAZI (WEDGE TRANSFORMATION) */}
-        <Center 
-          top 
-          position={[0, baseH, 0]} 
-          onCentered={handleCentered}
-        >
-          <Text3D
-            key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}`} 
-            font="/fonts/Plus_Jakarta_Sans_Bold.json" 
-            size={1.0}
-            height={textDepth} 
-            curveSegments={16}
-            bevelEnabled={false} // Keskin kama silueti için bevel kapalı
-            onUpdate={(self) => {
-              if (!self.geometry.userData.morphed) {
-                self.geometry.computeBoundingBox();
-                const bbox = self.geometry.boundingBox;
-                const minY = bbox.min.y;
-                const maxY = bbox.max.y;
-                const H = maxY - minY;
-                
-                const minZ = bbox.min.z; // Arka Yüz (0'a yakın)
-                const maxZ = bbox.max.z; // Ön Yüz (textDepth)
-                const D = maxZ - minZ;
 
-                const positions = self.geometry.attributes.position;
-                
-                const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
-                const maxZShift = H * Math.tan(tiltAngleRad);
-                
-                const italicAngleRad = THREE.MathUtils.degToRad(12);
-                const maxXShift = H * Math.tan(italicAngleRad);
+        {/* YAZI ("YAPIŞKAN SÜNME" - WEDGE TRANSFORMATION) */}
+        <Text3D
+          key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}`}
+          font="/fonts/Plus_Jakarta_Sans_Bold.json"
+          size={1.0}
+          height={textDepth}
+          curveSegments={16}
+          bevelEnabled={false} // Keskin siluet için bevel kapalı
+          onUpdate={(self) => {
+            if (!self.geometry.userData.morphed) {
+              
+              // 1. Önce TextGeometry'nin sınırlarını bulup X ve Z'de merkeze, Y'de 0'a oturtuyoruz (Center bileşeni bypass edildi)
+              self.geometry.computeBoundingBox();
+              let bbox = self.geometry.boundingBox;
+              self.geometry.translate(
+                -(bbox.max.x + bbox.min.x) / 2, // X ekseninde merkezde
+                -bbox.min.y,                    // Y ekseninde tabanı 0'a hizala
+                -(bbox.max.z + bbox.min.z) / 2  // Z ekseninde merkezde
+              );
 
-                for(let i = 0; i < positions.count; i++) {
-                   const x = positions.getX(i);
-                   const y = positions.getY(i);
-                   const z = positions.getZ(i);
-                   
-                   const depthNorm = D === 0 ? 0 : (maxZ - z) / D; // Ön(0) -> Arka(1)
-                   const heightNorm = H === 0 ? 0 : (maxY - y) / H; // Üst(0) -> Alt(1)
-                   
-                   // KAMA (Wedge) DÖNÜŞÜMÜ
-                   const zShift = - (depthNorm * heightNorm * maxZShift);
-                   
-                   // İTALİK DÖNÜŞÜM
-                   const heightNormInverted = H === 0 ? 0 : (y - minY) / H; // Alt(0) -> Üst(1)
-                   const xShift = isItalic ? (heightNormInverted * maxXShift) : 0;
-                   
-                   positions.setXYZ(i, x + xShift, y, z + zShift);
-                }
-                
-                self.geometry.computeVertexNormals(); 
-                self.geometry.computeBoundingBox();
-                self.geometry.userData.morphed = true;
-                positions.needsUpdate = true;
+              // 2. 0'a hizalanmış güncel hacmi al
+              self.geometry.computeBoundingBox();
+              bbox = self.geometry.boundingBox;
+              const minY = bbox.min.y;
+              const maxY = bbox.max.y;
+              const H = maxY - minY;
+
+              const minZ = bbox.min.z; // Arka Yüz (negatif derinlik)
+              const maxZ = bbox.max.z; // Ön Yüz (0 civarı)
+              const D = maxZ - minZ;
+
+              const positions = self.geometry.attributes.position;
+
+              const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
+              const maxZShift = H * Math.tan(tiltAngleRad);
+
+              const italicAngleRad = THREE.MathUtils.degToRad(12);
+              const maxXShift = H * Math.tan(italicAngleRad);
+
+              for(let i = 0; i < positions.count; i++) {
+                 const x = positions.getX(i);
+                 const y = positions.getY(i);
+                 const z = positions.getZ(i);
+
+                 const depthNorm = D === 0 ? 0 : (maxZ - z) / D;     // Ön yüz(0) -> Arka yüz(1)
+                 const heightNorm = H === 0 ? 0 : (maxY - y) / H;      // Üst tepe(0) -> Alt taban(1)
+
+                 // 3a. KAMA (Wedge) DÖNÜŞÜMÜ: Sadece arka alt taraf geriye doğru uzar
+                 const zShift = - (Math.pow(depthNorm, 0.8) * heightNorm * maxZShift);
+
+                 // 3b. SÜNME / YAPIŞMA EFEKTİ: 
+                 // Harf havada kalacağı için (gap kadar), sadece arka noktaları o gap kadar aşağı çekip tabana yapıştırıyoruz.
+                 const yShift = - (Math.pow(depthNorm, 0.8) * heightNorm * gap);
+
+                 // 3c. İTALİK DÖNÜŞÜM: Normal eğiklik
+                 const heightNormInverted = H === 0 ? 0 : (y - minY) / H;
+                 const xShift = isItalic ? (heightNormInverted * maxXShift) : 0;
+
+                 positions.setXYZ(i, x + xShift, y + yShift, z + zShift);
               }
-            }}
-          >
-            {text || "73"}
-            <meshStandardMaterial 
-              color={materialColor} 
-              roughness={0.4} 
-              metalness={0.1} 
-            />
-          </Text3D>
-        </Center>
+
+              // 4. Dönüşümden sonra havaya (baseH + gap) seviyesine taşıyoruz.
+              // Ön yüz yShift=0 olduğu için havada (gap kadar asılı) kalır.
+              // Arka alt yüz yShift=-gap olduğu için baseH (0 hizası) seviyesine inip tam tablaya değer.
+              self.geometry.translate(0, baseH + gap, 0);
+
+              self.geometry.computeVertexNormals();
+              self.geometry.computeBoundingBox();
+              self.geometry.userData.morphed = true;
+              positions.needsUpdate = true;
+
+              // 5. Taban plakasını ölçülere göre genişletmesi için ebatları bildir
+              const fbox = self.geometry.boundingBox;
+              setTextSize([
+                fbox.max.x - fbox.min.x,
+                fbox.max.y - fbox.min.y,
+                fbox.max.z - fbox.min.z
+              ]);
+            }
+          }}
+        >
+          {text || "73"}
+          <meshStandardMaterial
+            color={materialColor}
+            roughness={0.4}
+            metalness={0.1}
+          />
+        </Text3D>
 
         {/* TABAN PLAKASI */}
-        <RoundedBox 
+        <RoundedBox
           position={[0, baseH / 2, 0]}
           receiveShadow
-          args={[baseW, baseH, baseD]} 
-          radius={0.05} 
-          smoothness={4} 
+          args={[baseW, baseH, baseD]}
+          radius={0.05}
+          smoothness={4}
           creased
         >
-          <meshStandardMaterial color="#334155" roughness={0.8} /> 
+          <meshStandardMaterial color="#334155" roughness={0.8} />
         </RoundedBox>
 
       </group>
