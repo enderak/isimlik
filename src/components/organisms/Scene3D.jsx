@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Text3D, Center, PerspectiveCamera, OrbitControls, RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
+import { Evaluator, Brush, ADDITION } from 'three-bvh-csg';
 
 export const Scene3D = ({ 
   text, 
@@ -12,6 +13,24 @@ export const Scene3D = ({
   tiltAngle
 }) => {
   const [textSize, setTextSize] = useState([6, 0.6, 0.6]); 
+
+  // CSG Kaynak Mesh'leri
+  const [textMesh, setTextMesh] = useState(null);
+  const [baseMesh, setBaseMesh] = useState(null);
+  
+  // Üretilen Manifold Geometri
+  const [unionGeometry, setUnionGeometry] = useState(null);
+  const internalParentRef = useRef();
+
+  // Italic Shear
+  const shearMatrix = useMemo(() => {
+    const matrix = new THREE.Matrix4();
+    if (isItalic) {
+      const angle = Math.tan(THREE.MathUtils.degToRad(12)); 
+      matrix.makeShear(angle, 0, 0, 0, 0, 0); 
+    }
+    return matrix;
+  }, [isItalic]);
 
   const handleCentered = (props) => {
     const { width, height, depth } = props;
@@ -29,10 +48,54 @@ export const Scene3D = ({
 
   const baseH = (plateThickness / 10); 
   const baseW = textSize[0] + 0.8; 
-  // Wedge transform hesaplanan derinliği bbox'a yansıyacağı için, plate ona göre büyüyecektir.
-  const baseD = textSize[2] + 0.8; 
+  const baseD = textSize[2] + 2.0; 
+  const textDepth = isThicknessThick ? 2.5 : 1.0; 
+  const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
+  
+  // Harfi taban içine gömüp kesiştirme (Intersection) başlangıcı
+  const sinkDepth = textDepth * Math.sin(tiltAngleRad) + 0.2; 
 
-  const textDepth = isThicknessThick ? 0.6 : 0.2; 
+  // Boolean CSG Union Tetikleyici
+  useEffect(() => {
+    if (!textMesh || !baseMesh || !internalParentRef.current) return;
+    
+    try {
+      // Bileşenlerin dünya matrislerini güncelliyoruz
+      textMesh.updateMatrixWorld(true);
+      baseMesh.updateMatrixWorld(true);
+      internalParentRef.current.updateMatrixWorld(true);
+      
+      const evaluator = new Evaluator();
+      
+      // Taban Plakası Brush
+      const brushBase = new Brush(baseMesh.geometry);
+      brushBase.matrix.copy(baseMesh.matrixWorld);
+      brushBase.matrixAutoUpdate = false;
+      brushBase.updateMatrixWorld();
+
+      // Yazı Brush
+      const brushText = new Brush(textMesh.geometry);
+      brushText.matrix.copy(textMesh.matrixWorld);
+      brushText.matrixAutoUpdate = false;
+      brushText.updateMatrixWorld();
+
+      // Mükemmel Boolean Birleşimi!
+      const resultMesh = evaluator.evaluate(brushBase, brushText, ADDITION);
+      
+      if (resultMesh && resultMesh.geometry) {
+        // Çıkan sonucu World Space'den Local Space'e geri çevir (Aksi takdirde iki kere kayar)
+        const parentInverse = new THREE.Matrix4().copy(internalParentRef.current.matrixWorld).invert();
+        resultMesh.geometry.applyMatrix4(parentInverse);
+        
+        // Yeniden normals hesaplat ki pürüzsüz görünsün
+        resultMesh.geometry.computeVertexNormals();
+        
+        setUnionGeometry(resultMesh.geometry.clone());
+      }
+    } catch (e) {
+      console.warn("CSG Operation Failed:", e);
+    }
+  }, [textMesh, baseMesh, textSize, text, isItalic, tiltAngle, isThicknessThick, plateThickness]);
 
   return (
     <>
@@ -42,86 +105,67 @@ export const Scene3D = ({
       <directionalLight position={[5, 10, 5]} intensity={1.5} castShadow />
       <pointLight position={[10, 10, 10]} intensity={1.2} castShadow />
 
-      <group ref={groupRef} position={[0, -1, 0]}>
+      <group ref={internalParentRef} position={[0, -1, 0]}>
         
-        {/* YAZI (WEDGE TRANSFORMATION) */}
-        <Center 
-          top 
-          position={[0, baseH, 0]} 
-          onCentered={handleCentered}
-        >
-          <Text3D
-            key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}`} 
-            font="/fonts/Plus_Jakarta_Sans_Bold.json" 
-            size={1.0}
-            height={textDepth} 
-            curveSegments={16}
-            bevelEnabled={false} // Keskin kama silueti için bevel kapalı
-            onUpdate={(self) => {
-              if (!self.geometry.userData.morphed) {
-                self.geometry.computeBoundingBox();
-                const bbox = self.geometry.boundingBox;
-                const minY = bbox.min.y;
-                const maxY = bbox.max.y;
-                const H = maxY - minY;
-                
-                const minZ = bbox.min.z; // Arka Yüz (0'a yakın)
-                const maxZ = bbox.max.z; // Ön Yüz (textDepth)
-                const D = maxZ - minZ;
-
-                const positions = self.geometry.attributes.position;
-                
-                const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
-                const maxZShift = H * Math.tan(tiltAngleRad);
-                
-                const italicAngleRad = THREE.MathUtils.degToRad(12);
-                const maxXShift = H * Math.tan(italicAngleRad);
-
-                for(let i = 0; i < positions.count; i++) {
-                   const x = positions.getX(i);
-                   const y = positions.getY(i);
-                   const z = positions.getZ(i);
-                   
-                   const depthNorm = D === 0 ? 0 : (maxZ - z) / D; // Ön(0) -> Arka(1)
-                   const heightNorm = H === 0 ? 0 : (maxY - y) / H; // Üst(0) -> Alt(1)
-                   
-                   // KAMA (Wedge) DÖNÜŞÜMÜ
-                   const zShift = - (depthNorm * heightNorm * maxZShift);
-                   
-                   // İTALİK DÖNÜŞÜM
-                   const heightNormInverted = H === 0 ? 0 : (y - minY) / H; // Alt(0) -> Üst(1)
-                   const xShift = isItalic ? (heightNormInverted * maxXShift) : 0;
-                   
-                   positions.setXYZ(i, x + xShift, y, z + zShift);
-                }
-                
-                self.geometry.computeVertexNormals(); 
-                self.geometry.computeBoundingBox();
-                self.geometry.userData.morphed = true;
-                positions.needsUpdate = true;
-              }
-            }}
+        {/* KAYNAK MODELLER (GÜN IŞIĞINDAN GİZLİ) - Sadece CSG hesabı için varlar */}
+        <group visible={false}>
+          {/* YAZI */}
+          <Center 
+            top 
+            position={[0, baseH - sinkDepth, 0]} 
+            onCentered={handleCentered}
           >
-            {text || "73"}
-            <meshStandardMaterial 
-              color={materialColor} 
-              roughness={0.4} 
-              metalness={0.1} 
-            />
-          </Text3D>
-        </Center>
+            <Text3D
+              ref={setTextMesh}
+              key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-source`} 
+              font="/fonts/Plus_Jakarta_Sans_Bold.json" 
+              size={1.0}
+              height={textDepth} 
+              curveSegments={16}
+              bevelEnabled
+              bevelThickness={isThicknessThick ? 0.04 : 0.015}
+              bevelSize={isThicknessThick ? 0.03 : 0.01}
+              bevelOffset={0}
+              bevelSegments={4}
+              rotation={[-tiltAngleRad, 0, 0]} 
+              onUpdate={(self) => {
+                if (isItalic && !self.geometry.userData.sheared) {
+                  self.geometry.applyMatrix4(shearMatrix);
+                  self.geometry.userData.sheared = true;
+                  self.geometry.computeBoundingBox();
+                }
+                // Morph sonrası CSG'yi zorla update ettirmek için state'de ref tazeleyebiliriz
+                // setTextMesh(null); setTimeout(()=>setTextMesh(self)); // Hızlı hack :) Ama useEffect `textSize` dinliyor.
+              }}
+            >
+              {text || "73"}
+              <meshBasicMaterial />
+            </Text3D>
+          </Center>
 
-        {/* TABAN PLAKASI */}
-        <RoundedBox 
-          position={[0, baseH / 2, 0]}
-          receiveShadow
-          args={[baseW, baseH, baseD]} 
-          radius={0.05} 
-          smoothness={4} 
-          creased
-        >
-          <meshStandardMaterial color="#334155" roughness={0.8} /> 
-        </RoundedBox>
+          {/* TABAN PLAKASI */}
+          <RoundedBox 
+            ref={setBaseMesh}
+            position={[0, baseH / 2, 0]}
+            args={[baseW, baseH, baseD]} 
+            radius={0.05} 
+            smoothness={4} 
+            creased
+          >
+            <meshBasicMaterial /> 
+          </RoundedBox>
+        </group>
+
+        {/* MÜKEMMEL TEK PARÇA (MANIFOLD UNION) MESH - DIŞA AKTARILACAK OLAN BUDUR */}
+        {unionGeometry && (
+          <mesh ref={groupRef} geometry={unionGeometry} receiveShadow castShadow>
+             <meshStandardMaterial 
+                color={materialColor} 
+                roughness={0.4} 
+                metalness={0.1} 
+              />
+          </mesh>
+        )}
 
       </group>
     </>
