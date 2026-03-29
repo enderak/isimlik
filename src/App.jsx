@@ -69,16 +69,26 @@ const App = () => {
           </div>
 
           {/* Branding Footer (Left Col) */}
-          <footer className="w-full max-w-sm flex flex-col items-center gap-1.5 opacity-60 mt-4 md:mb-10 text-center">
+          <footer className="w-full max-w-sm flex flex-col items-center gap-3 mt-4 md:mb-10 text-center bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50">
             <a 
               href="https://www.sakrad.org/hakkimizda/" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-blue-500 transition-colors"
+              className="group flex flex-col items-center gap-1.5"
             >
-              SAKRAD - SAKARYA AMATÖR TELSİZCİLER VE RADYO AMATÖRLERİ DERNEĞİ
+              <div className="text-xl font-black tracking-[0.2em] text-slate-800 group-hover:text-blue-500 transition-colors">
+                SAKRAD
+              </div>
+              <div className="text-[10px] font-semibold tracking-wider text-slate-500 max-w-[280px]">
+                SAKARYA AMATÖR TELSİZCİLER VE RADYO AMATÖRLERİ DERNEĞİ
+              </div>
             </a>
-            <span className="text-[10px] text-slate-400 font-medium">{t('developer')} TA2NLE</span>
+            
+            <div className="w-16 h-px bg-slate-200/80 my-1"></div>
+            
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+              {t('developer')} <strong className="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md">TA2NLE</strong>
+            </div>
           </footer>
         </div>
 
