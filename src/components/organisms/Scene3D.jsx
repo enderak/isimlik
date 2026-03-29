@@ -22,15 +22,25 @@ export const Scene3D = ({
     const matrix = new THREE.Matrix4();
     if (isItalic) {
       const angle = Math.tan(THREE.MathUtils.degToRad(12)); 
-      matrix.makeShear(angle, 0, 0, 0, 0, 0); 
+      // Three.js versiyon uyumluluğu için
+      if (matrix.makeShear.length === 3) {
+        matrix.makeShear(angle, 0, 0);
+      } else {
+        matrix.makeShear(angle, 0, 0, 0, 0, 0);
+      }
     }
     return matrix;
   }, [isItalic]);
 
   const baseH = (plateThickness / 10); 
   const baseW = textSize[0] + 0.8; 
-  const baseD = textSize[2] + 2.0; 
-  const textDepth = isThicknessThick ? 2.5 : 1.0; 
+  const baseD = textSize[2] + 1.2; 
+  
+  // ÖNEMLİ DÜZELTME: Eskiden "Wedge" algoritmasını denemek için burayı 2.5 yapmıştık!
+  // Bu yüzden harfler devasa bir kalınlıkta (boru gibi) uzadı ve sinkDepth yüzünden 
+  // tamamen tablanın içine gömüldüler. Sadece en üst yüzeyleri görünüyordu!
+  // Orijinal ideal oranlara geri döndük:
+  const textDepth = isThicknessThick ? 0.5 : 0.15; 
 
   // CSG Engine - Yalnızca pure geometri okur, sahne offsetlerini kendi verir.
   useEffect(() => {
@@ -106,7 +116,10 @@ export const Scene3D = ({
               self.geometry.rotateX(-tiltAngleRad);
 
               // 4. Sink Depth (Boşlukları yok et, göm ve tabana yerleştir)
-              const sinkDepth = textDepth * Math.sin(tiltAngleRad) + 0.2;
+              // Z merkezinde döndürdüğümüz için, harfin ön alt köşesi (Depth / 2) kadar yukarı kalkar.
+              // Biz tam o kalkan miktar kadar aşağı indiririz ki ön alt köşe tam tabana bassın.
+              // Sonra da hafifçe 0.05 daha gömeriz ki kusursuz manifold birleşsin.
+              const sinkDepth = (textDepth / 2) * Math.sin(tiltAngleRad) + 0.05;
               self.geometry.translate(0, baseH - sinkDepth, 0);
 
               // 5. Çerçevenin yeni hacmini ölç
@@ -118,7 +131,7 @@ export const Scene3D = ({
               
               self.geometry.userData.morphed = true;
               
-              // 6. Taban plakasının bu yeni ölçülere göre sarabilmesi için durumu bildir (React render tetikler)
+              // 6. Taban plakasının bu yeni ölçülere göre sarabilmesi için durumu bildir
               setTextSize([newW, newH, newD]);
             }}
           >
