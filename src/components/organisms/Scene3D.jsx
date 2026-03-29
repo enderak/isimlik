@@ -19,8 +19,8 @@ export const Scene3D = ({
   const gap = 0.15; // 1.5mm hava payı
 
   const baseW = textSize[0] + 0.8;
-  const baseD = 3.0; // 90 derece yatış için plaka derinliğini artırdık (30mm)
-  const baseCenterZ = -1.0; // Plakayı daha geriye aldık, yatış alanı için
+  const baseD = 1.8; // Daha kısa mesafede büküm bittiği için plakayı küçülttük
+  const baseCenterZ = -0.5; // Plakayı öne yaklaştırdık
 
   return (
     <>
@@ -38,7 +38,7 @@ export const Scene3D = ({
           key={`support-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
           size={1.0}
-          height={supportHeight} // 8mm ramp
+          height={0.5} // KISA VE YUMUŞAK DİRSEK (5mm)
           curveSegments={16}
           bevelEnabled={false}
           onUpdate={(self) => {
@@ -78,18 +78,16 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                 // 2. 90-DERECE TAM BORU DİRSEĞİ (90° TOTAL PIPE BEND)
-                 // Harfin sırtını (arka yüzünü) masaya yatıran gerçek 90 derece büküm.
-                 // depthNorm boyunca açıyı tiltAngle'dan 90 dereceye (PI/2) taşıyoruz.
+                 // 2. ÇOK AÇILI YUMUŞAK DİRSEK (MULTI-ANGLE SOFT RADIUS)
+                 // Boru dirseğinden daha yumuşak, Sinüzoidal geçiş.
                  const startAngle = tiltAngleRad;
                  const endAngle = Math.PI / 2;
-                 const currentAngle = startAngle + (endAngle - startAngle) * Math.pow(depthNorm, 1.2); 
+                 const curve = 1 - Math.cos(depthNorm * Math.PI / 2); // 0'dan 1'a çok açılı/yumuşak geçiş
+                 const currentAngle = startAngle + (endAngle - startAngle) * curve; 
                  
-                 // gap (hava payı) da dönüş boyunca sıfırlanıyor
-                 const currentGap = gap * (1 - depthNorm);
+                 const currentGap = gap * (1 - curve);
 
-                 // ROTASYONEL DÖNÜŞ (y eksenini z'ye yatırıyoruz)
-                 // y' = y * cos(A), z' = y * sin(A)
+                 // ROTASYONEL DÖNÜŞ (Sırtı masaya yatırıyoruz)
                  const yFinal = y * Math.cos(currentAngle) + baseH + currentGap;
                  const zShift = - (y * Math.sin(currentAngle));
 
