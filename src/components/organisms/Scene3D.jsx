@@ -26,7 +26,18 @@ export const Scene3D = ({
   const handleCentered = (props) => {
     const { width, height, depth } = props;
     if (width && width > 0) {
-      setTextSize([width, height, depth]);
+      setTextSize(prev => {
+        // Rakamları çok ufak küsurat değişimlerinde (floating point error) bile re-render'ı durdurmak için
+        // Math.abs ile kontrol edebiliriz veya direkt karşılaştırabiliriz.
+        if (
+          Math.abs(prev[0] - width) < 0.001 &&
+          Math.abs(prev[1] - height) < 0.001 &&
+          Math.abs(prev[2] - depth) < 0.001
+        ) {
+          return prev; // Değişim yoksa state'i GÜNCELLEME (Infinite loop'u engeller)
+        }
+        return [width, height, depth];
+      });
     }
   };
 
@@ -87,17 +98,17 @@ export const Scene3D = ({
         </Center>
 
         {/* TABAN (BASE PLATE) */}
-        <mesh position={[0, baseH / 2, 0]} receiveShadow>
-          <RoundedBox 
-            args={[baseW, baseH, baseD]} 
-            radius={0.05} // Çok hafif pah/yuvarlaklık FDM dostu
-            smoothness={4} 
-            creased
-          >
-            {/* Taban her zaman sabit hafif dokulu koyu gri (FDM Tablası) hissiyatında kalsın diye UI rengini bağlamadık, dilerseniz bağlanabilir. */}
-            <meshStandardMaterial color="#334155" roughness={0.8} /> 
-          </RoundedBox>
-        </mesh>
+        <RoundedBox 
+          position={[0, baseH / 2, 0]}
+          receiveShadow
+          args={[baseW, baseH, baseD]} 
+          radius={0.05} // Çok hafif pah/yuvarlaklık FDM dostu
+          smoothness={4} 
+          creased
+        >
+          {/* Taban her zaman sabit hafif dokulu koyu gri (FDM Tablası) hissiyatında kalsın diye UI rengini bağlamadık, dilerseniz bağlanabilir. */}
+          <meshStandardMaterial color="#334155" roughness={0.8} /> 
+        </RoundedBox>
       </group>
     </>
   );
