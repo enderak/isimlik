@@ -64,10 +64,10 @@ export const Scene3D = ({
               const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
               const italicAngleRad = THREE.MathUtils.degToRad(12);
               
-              const INSET_AMOUNT = -0.06; // Ana harften ~0.6mm daha dar (içte kalması için)
+              const INSET_AMOUNT = 0.0; // Desteği ana harfle tam sıfıra sıfır yap (Boşluk kalmasın)
 
               for(let i = 0; i < positions.count; i++) {
-                 // 1. Normal (Yüzey yönü) ekseninde içe doğru (negatif) daraltma
+                 // 1. Normal (Yüzey yönü) ekseninde hizalama
                  const nx = normals.getX(i);
                  const nz = normals.getZ(i);
 
@@ -78,13 +78,11 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                 // 2. ESNEK BORU BÜKÜMÜ (PIPE BEND EFFECT)
-                 // Önde tam eğimli (Tilt), arkada ise dikleşerek (0 tilt) masaya tam oturan yapı.
-                 const curve = Math.cos(depthNorm * Math.PI / 2); // Boru dirseği gibi yumuşak 1'den 0'a
-                 const currentTilt = tiltAngleRad * curve;
-                 const currentGap = gap * curve; 
-                 
-                 const yFinal = y + baseH + currentGap;
+                 // 2. GERÇEK BORU DİRSEĞİ (SPHERICAL PIPE ELBOW)
+                 // Boru dirseği gibi küresel bir yay çizerek iner (x^2 + y^2 = r^2 mantığı)
+                 const dropCurve = Math.sqrt(1 - Math.pow(depthNorm, 2)); // 1'den 0'a küresel kavis
+                 const currentTilt = tiltAngleRad * dropCurve;
+                 const yFinal = y + baseH + (gap * dropCurve) - 0.05; // 0.5mm ekstra gömülme (Öpüşme garantisi)
 
                  // 3. Değişken Eğim (Tilt) ve İtalik
                  const zShift = - (y * Math.tan(currentTilt));
