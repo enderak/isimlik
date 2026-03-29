@@ -19,8 +19,8 @@ export const Scene3D = ({
   const gap = 0.15; // 1.5mm hava payı
 
   const baseW = textSize[0] + 0.8;
-  const baseD = 1.8; // Daha kısa mesafede büküm bittiği için plakayı küçülttük
-  const baseCenterZ = -0.5; // Plakayı öne yaklaştırdık
+  const baseD = 1.4; // İyice kompakt plaka (14mm)
+  const baseCenterZ = -0.3; // Tablayı harf dibine iyice yaklaştırdık
 
   return (
     <>
@@ -38,7 +38,7 @@ export const Scene3D = ({
           key={`support-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
           size={1.0}
-          height={0.5} // KISA VE YUMUŞAK DİRSEK (5mm)
+          height={0.25} // EKSTREM KISA VE KIVRIMLI (2.5mm)
           curveSegments={16}
           bevelEnabled={false}
           onUpdate={(self) => {
@@ -78,11 +78,11 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                 // 2. ÇOK AÇILI YUMUŞAK DİRSEK (MULTI-ANGLE SOFT RADIUS)
-                 // Boru dirseğinden daha yumuşak, Sinüzoidal geçiş.
+                 // 2. EKSTREM KIVRIMLI KISA DİRSEK (TIGHT RADIUS FILLET)
+                 // Çok daha kısa mesafede, daha agresif ve "kıvrımlı" geçiş.
                  const startAngle = tiltAngleRad;
                  const endAngle = Math.PI / 2;
-                 const curve = 1 - Math.cos(depthNorm * Math.PI / 2); // 0'dan 1'a çok açılı/yumuşak geçiş
+                 const curve = Math.pow(depthNorm, 0.7); // 0.7 ile kavisli ve esnek başlangıç
                  const currentAngle = startAngle + (endAngle - startAngle) * curve; 
                  
                  const currentGap = gap * (1 - curve);
