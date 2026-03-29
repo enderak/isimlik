@@ -46,7 +46,7 @@ export const Scene3D = ({
               self.geometry.translate(
                 -(bbox.max.x + bbox.min.x) / 2, 
                 -bbox.min.y,                    
-                -bbox.max.z // FRONT FACE TO Z=0
+                -bbox.max.z - textDepth // ÖN YÜZÜ ANA HARFİN ARKA DUVARINA DAYA
               );
 
               self.geometry.computeBoundingBox();
