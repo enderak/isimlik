@@ -78,14 +78,16 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                 // 2. YUMUŞAK VE ŞEKİLLERİ KORUYAN GEÇİŞ (CURVED SHAPE WRAP)
-                 // Bor köşesi gibi yumuşak (Cosine) bir iniş. 
-                 // Harfin kendi boyunu (y) ezmiyoruz, sadece masayla olan boşluğu (gap) arkaya doğru kapatıyoruz.
-                 const curve = Math.cos(depthNorm * Math.PI / 2); // 1'den 0'a yumuşak iniş
-                 const yFinal = y + baseH + (gap * curve);
+                 // 2. ESNEK BORU BÜKÜMÜ (PIPE BEND EFFECT)
+                 // Önde tam eğimli (Tilt), arkada ise dikleşerek (0 tilt) masaya tam oturan yapı.
+                 const bendCurve = 1 - Math.pow(depthNorm, 2); // Önde 1 (tam eğim), arkada 0 (dik)
+                 const currentTilt = tiltAngleRad * bendCurve;
+                 const currentGap = gap * curve; // gap de yumuşakça sıfırlanıyor
+                 
+                 const yFinal = y + baseH + currentGap;
 
-                 // 3. Eğim (Tilt) ve İtalik
-                 const zShift = - (y * Math.tan(tiltAngleRad));
+                 // 3. Değişken Eğim (Tilt) ve İtalik
+                 const zShift = - (y * Math.tan(currentTilt));
                  const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
 
                  positions.setXYZ(i, x + xShift, yFinal, z + zShift);
