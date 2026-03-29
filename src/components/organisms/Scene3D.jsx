@@ -1,93 +1,155 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Text3D, OrbitControls, PerspectiveCamera, RoundedBox } from '@react-three/drei';
+import React, { useState, useMemo } from 'react';
+import { Text3D, Center, PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { Evaluator, Brush, ADDITION } from 'three-bvh-csg';
 
-export const Scene3D = ({ 
-  text, 
-  isItalic, 
+/**
+ * KAMA (WEDGE) GEOMETRİSİ
+ * Yan kesiti bir üçgen olan prizma oluşturur:
+ *   - Ön yüz (z = +hd, görüntüleyiciye bakan): baseH kadar alçak
+ *   - Arka yüz (z = -hd, arkada):              baseH + letterH kadar yüksek
+ *   - Alt yüz (y = 0):                         düz, 3D yazıcı tablası
+ *   - Üst yüz:                                 ön-alçak → arka-yüksek eğimi
+ */
+function createWedgeGeometry(W, frontH, backH, D) {
+  const geo = new THREE.BufferGeometry();
+  const hw = W / 2;
+  const hd = D / 2;
+
+  // 8 köşe noktası
+  const positions = new Float32Array([
+    // Ön yüz (z = +hd) — kısa taraf
+    -hw,     0,  hd,  // 0: ön-alt-sol
+     hw,     0,  hd,  // 1: ön-alt-sağ
+     hw, frontH,  hd, // 2: ön-üst-sağ
+    -hw, frontH,  hd, // 3: ön-üst-sol
+    // Arka yüz (z = -hd) — uzun taraf
+    -hw,    0,  -hd,  // 4: arka-alt-sol
+     hw,    0,  -hd,  // 5: arka-alt-sağ
+     hw, backH, -hd,  // 6: arka-üst-sağ
+    -hw, backH, -hd,  // 7: arka-üst-sol
+  ]);
+
+  // Dışa bakan yüzeyler (saat yönünün tersine sarma = CCW)
+  const indices = [
+    // Alt (y=0, aşağı bakan)
+    0, 5, 4,   0, 1, 5,
+    // Ön (z=+hd, +Z yönü)
+    0, 2, 1,   0, 3, 2,
+    // Arka (z=-hd, -Z yönü)
+    4, 6, 5,   4, 7, 6,
+    // Sol (x=-hw, -X yönü)
+    0, 4, 7,   0, 7, 3,
+    // Sağ (x=+hw, +X yönü)
+    1, 2, 6,   1, 6, 5,
+    // Üst-eğimli (sloped top)
+    3, 7, 6,   3, 6, 2,
+  ];
+
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+export const Scene3D = ({
+  text,
+  isItalic,
   groupRef,
   isThicknessThick,
   materialColor,
   plateThickness,
-  tiltAngle
+  tiltAngle,
 }) => {
-  const [textSize, setTextSize] = useState([6, 0.6, 0.6]); 
+  // Text3D boyutları ölçüldüğünde state'e kaydediliyor
+  const [letterSize, setLetterSize] = useState({ width: 6.0, height: 1.0 });
 
-  const [textMesh, setTextMesh] = useState(null);
-  const [baseMesh, setBaseMesh] = useState(null);
-  const [unionGeometry, setUnionGeometry] = useState(null);
-
+  // İtalik için Shear matrisi
   const shearMatrix = useMemo(() => {
     const matrix = new THREE.Matrix4();
     if (isItalic) {
-      const angle = Math.tan(THREE.MathUtils.degToRad(12)); 
-      // Three.js versiyon uyumluluğu için
-      if (matrix.makeShear.length === 3) {
-        matrix.makeShear(angle, 0, 0);
-      } else {
-        matrix.makeShear(angle, 0, 0, 0, 0, 0);
-      }
+      const angle = Math.tan(THREE.MathUtils.degToRad(12));
+      // Three.js r160 ve altı için 3 argümanlı overload kullan
+      try { matrix.makeShear(angle, 0, 0, 0, 0, 0); }
+      catch { matrix.makeShear(angle, 0, 0); }
     }
     return matrix;
   }, [isItalic]);
 
-  const baseH = (plateThickness / 10); 
-  const baseW = textSize[0] + 0.8; 
-  const baseD = textSize[2] + 1.2; 
-  
-  // ÖNEMLİ DÜZELTME: Eskiden "Wedge" algoritmasını denemek için burayı 2.5 yapmıştık!
-  // Bu yüzden harfler devasa bir kalınlıkta (boru gibi) uzadı ve sinkDepth yüzünden 
-  // tamamen tablanın içine gömüldüler. Sadece en üst yüzeyleri görünüyordu!
-  // Orijinal ideal oranlara geri döndük:
-  const textDepth = isThicknessThick ? 0.5 : 0.15; 
+  // Temel ölçüler
+  const baseH   = plateThickness / 10;          // Tabanın ön yüzü (ince plaka)
+  const letterH = letterSize.height;
+  const letterW = letterSize.width;
+  const backH   = baseH + letterH;               // Tabanın arka yüzü (harf yüksekliği + plaka)
 
-  // CSG Engine - Yalnızca pure geometri okur, sahne offsetlerini kendi verir.
-  useEffect(() => {
-    if (!textMesh || !baseMesh) return;
-    
-    try {
-      const evaluator = new Evaluator();
-      
-      // Taban Plakası: Sıfır noktasından Y ekseninde yukarı kaydırılır
-      const baseGeo = baseMesh.geometry.clone();
-      baseGeo.translate(0, baseH / 2, 0);
-      const brushBase = new Brush(baseGeo);
-      
-      // Harfler: Zaten 'onUpdate' içinde kusursuz bir şekilde matrix hesabı yapılıp konumu ayarlandı
-      const textGeo = textMesh.geometry.clone();
-      const brushText = new Brush(textGeo);
+  // Kama derinliği: tan(açı) = yükseklik farkı / derinlik
+  const tiltRad = THREE.MathUtils.degToRad(Math.max(tiltAngle, 1));
+  const wedgeD  = letterH / Math.tan(tiltRad);  // Eğim açısına göre kama derinliği
+  const wedgeW  = letterW + 0.8;                 // Genişlik = harf genişliği + kenar boşluğu
 
-      // Mutlak Boolean Birleşimi
-      const resultMesh = evaluator.evaluate(brushBase, brushText, ADDITION);
-      
-      if (resultMesh && resultMesh.geometry) {
-        resultMesh.geometry.computeVertexNormals();
-        setUnionGeometry(resultMesh.geometry.clone());
-      }
-    } catch (e) {
-      console.error("CSG Operation Failed:", e);
-    }
-  }, [textMesh, baseMesh, textSize, text, plateThickness]);
+  // Harf kalınlığı (extrude derinliği) — küçük tutuldu, esas destek kamadan geliyor
+  const textDepth = isThicknessThick ? 0.45 : 0.18;
+
+  // Kama geometrisi sadece ölçüler değişince yeniden hesaplanır
+  const wedgeGeo = useMemo(
+    () => createWedgeGeometry(wedgeW, baseH, backH, wedgeD),
+    [wedgeW, baseH, backH, wedgeD]
+  );
+
+  // Center bileşeni ölçümleri bildirdiğinde çalışır (sonsuz döngüyü önlemek için fark kontrolü)
+  const handleCentered = ({ width, height }) => {
+    setLetterSize(prev => {
+      if (
+        Math.abs((prev.width  - width)  || 0) < 0.001 &&
+        Math.abs((prev.height - height) || 0) < 0.001
+      ) return prev;
+      return { width: width ?? prev.width, height: height ?? prev.height };
+    });
+  };
+
+  // Modeli sahnede ortalamak için dikey offset
+  const groupOffsetY = -(baseH + letterH * 0.5);
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 4, 15]} />
+      <PerspectiveCamera makeDefault position={[0, 3, 14]} />
       <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 1.5} />
       <ambientLight intensity={0.8} />
       <directionalLight position={[5, 10, 5]} intensity={1.5} castShadow />
-      <pointLight position={[10, 10, 10]} intensity={1.2} castShadow />
+      <pointLight position={[-5, 8, 3]} intensity={0.8} castShadow />
 
-      <group ref={groupRef} position={[0, -1, 0]}>
-        
-        {/* KAYNAK MODELLER (GÖRÜNMEZ) - İşlemler geometriler düzeyinde saf matris ile yürür */}
-        <group visible={false}>
+      {/*
+        groupRef → STL Exporter bu group'u traverse ederek içindeki
+        tüm mesh'leri (kama + harfler) tek dosyaya yazar.
+      */}
+      <group ref={groupRef} position={[0, groupOffsetY, 0]}>
+
+        {/* ── KAMA (WEDGE) TABAN ── */}
+        <mesh geometry={wedgeGeo} receiveShadow castShadow>
+          <meshStandardMaterial
+            color={materialColor}
+            roughness={0.45}
+            metalness={0.08}
+          />
+        </mesh>
+
+        {/*
+          ── HARFLER ──
+          Tamamen DİKEY duruyorlar (rotation YOK).
+          Kama tabanının ön üst kenarından (y=baseH, z=+wedgeD/2) başlıyorlar.
+          Text3D varsayılan olarak +Z yönünde extrude ettiği için:
+            - Harfin arka yüzü, kamanın ön yüzüne gömülüyor (manifold birleşim)
+            - Harfin ön yüzü (+Z) görüntüleyiciye bakıyor
+        */}
+        <Center
+          top
+          position={[0, baseH, wedgeD / 2]}
+          onCentered={handleCentered}
+        >
           <Text3D
-            ref={setTextMesh}
-            key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-source`} 
-            font="/fonts/Plus_Jakarta_Sans_Bold.json" 
+            key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}`}
+            font="/fonts/Plus_Jakarta_Sans_Bold.json"
             size={1.0}
-            height={textDepth} 
+            height={textDepth}
             curveSegments={16}
             bevelEnabled
             bevelThickness={isThicknessThick ? 0.04 : 0.015}
@@ -95,71 +157,21 @@ export const Scene3D = ({
             bevelOffset={0}
             bevelSegments={4}
             onUpdate={(self) => {
-              if (self.geometry.userData.morphed) return;
-              
-              // 1. İtalik (Shear)
-              if (isItalic) {
+              if (isItalic && !self.geometry.userData.sheared) {
                 self.geometry.applyMatrix4(shearMatrix);
+                self.geometry.userData.sheared = true;
+                self.geometry.computeBoundingBox();
               }
-              
-              // 2. Kendisini %100 tam merkeze ve yere sıfır hizaya oturtur
-              self.geometry.computeBoundingBox();
-              const bbox1 = self.geometry.boundingBox;
-              self.geometry.translate(
-                -(bbox1.max.x + bbox1.min.x) / 2, // X ekseni merkezi
-                -bbox1.min.y,                     // Y ekseni tabanı
-                -(bbox1.max.z + bbox1.min.z) / 2  // Z ekseni merkezi
-              );
-
-              // 3. Eğim (Rotation)
-              const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
-              self.geometry.rotateX(-tiltAngleRad);
-
-              // 4. Sink Depth (Boşlukları yok et, göm ve tabana yerleştir)
-              // Z merkezinde döndürdüğümüz için, harfin ön alt köşesi (Depth / 2) kadar yukarı kalkar.
-              // Biz tam o kalkan miktar kadar aşağı indiririz ki ön alt köşe tam tabana bassın.
-              // Sonra da hafifçe 0.05 daha gömeriz ki kusursuz manifold birleşsin.
-              const sinkDepth = (textDepth / 2) * Math.sin(tiltAngleRad) + 0.05;
-              self.geometry.translate(0, baseH - sinkDepth, 0);
-
-              // 5. Çerçevenin yeni hacmini ölç
-              self.geometry.computeBoundingBox();
-              const bbox2 = self.geometry.boundingBox;
-              const newW = bbox2.max.x - bbox2.min.x;
-              const newH = bbox2.max.y - bbox2.min.y;
-              const newD = bbox2.max.z - bbox2.min.z;
-              
-              self.geometry.userData.morphed = true;
-              
-              // 6. Taban plakasının bu yeni ölçülere göre sarabilmesi için durumu bildir
-              setTextSize([newW, newH, newD]);
             }}
           >
-            {text || "73"}
-            <meshBasicMaterial />
+            {text || '73'}
+            <meshStandardMaterial
+              color={materialColor}
+              roughness={0.4}
+              metalness={0.1}
+            />
           </Text3D>
-
-          <RoundedBox 
-            ref={setBaseMesh}
-            args={[baseW, baseH, baseD]} 
-            radius={0.05} 
-            smoothness={4} 
-            creased
-          >
-            <meshBasicMaterial /> 
-          </RoundedBox>
-        </group>
-
-        {/* DIŞA AKTARILAN TEK VE KUSURSUZ MODEL (MANIFOLD MESH) */}
-        {unionGeometry && (
-          <mesh geometry={unionGeometry} receiveShadow castShadow>
-             <meshStandardMaterial 
-                color={materialColor} 
-                roughness={0.4} 
-                metalness={0.1} 
-              />
-          </mesh>
-        )}
+        </Center>
 
       </group>
     </>
