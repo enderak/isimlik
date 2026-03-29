@@ -41,20 +41,19 @@ export const Scene3D = ({
     }
   };
 
-  // Dinamik Taban Ölçüleri:
-  // plateThickness UI'den 2 ile 10 mm arası geliyor, bunu üç boyutlu birime (scale: 0.1) çeviriyoruz.
   const baseH = (plateThickness / 10); 
   const baseW = textSize[0] + 0.8; 
-  // Eğime göre ön-arka derinliği de esneklik sağlayacak şekilde genişletiyoruz.
-  const extraDepth = Math.sin(THREE.MathUtils.degToRad(tiltAngle)) * (isThicknessThick ? 0.6 : 0.2);
-  const baseD = textSize[2] + 1.2 + extraDepth; 
+  const baseD = textSize[2] + 2.0; 
 
-  const textDepth = isThicknessThick ? 0.5 : 0.15;
-  const rotationRad = -THREE.MathUtils.degToRad(tiltAngle);
+  const textDepth = isThicknessThick ? 2.5 : 0.8; 
+
+  const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
+  // Boşluğu kapatmak için harfin Z kalınlığının, dönüş açısındaki Y izdüşümü kadar harfleri aşağı/tabana batırıyoruz.
+  const sinkDepth = textDepth * Math.sin(tiltAngleRad) + 0.2; 
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[0, 4, 12]} />
+      <PerspectiveCamera makeDefault position={[0, 4, 15]} />
       <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 1.5} />
       <ambientLight intensity={0.8} />
       <directionalLight position={[5, 10, 5]} intensity={1.5} castShadow />
@@ -64,7 +63,7 @@ export const Scene3D = ({
         {/* YAZI MODELİ */}
         <Center 
           top 
-          position={[0, baseH, 0]} // Yazıyı tabanın üstüne yerleştir
+          position={[0, baseH - sinkDepth, 0]} // Yazıyı tabanın içine gömerek döndürme boşluğunu gizler
           onCentered={handleCentered}
         >
           <Text3D
@@ -72,21 +71,22 @@ export const Scene3D = ({
             key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}`} 
             font="/fonts/Plus_Jakarta_Sans_Bold.json" 
             size={1.0}
-            height={textDepth} // Kullanıcı KALIN/İNCE seçimine göre Z kalınlığı
+            height={textDepth} 
             curveSegments={16}
             bevelEnabled
             bevelThickness={isThicknessThick ? 0.04 : 0.015}
             bevelSize={isThicknessThick ? 0.03 : 0.01}
             bevelOffset={0}
             bevelSegments={4}
+            rotation={[-tiltAngleRad, 0, 0]} // Standard fiziksel üç boyutlu dönüş
             onUpdate={(self) => {
               if (isItalic && !self.geometry.userData.sheared) {
+                // Sadece İtalik deformasyonu korunur
                 self.geometry.applyMatrix4(shearMatrix);
                 self.geometry.userData.sheared = true;
                 self.geometry.computeBoundingBox();
               }
             }}
-            rotation={[rotationRad, 0, 0]} // Kullanıcıdan gelen eğim açısı
           >
             {text || "73"}
             <meshStandardMaterial 
