@@ -80,9 +80,9 @@ export const Scene3D = ({
 
                  // 2. ESNEK BORU BÜKÜMÜ (PIPE BEND EFFECT)
                  // Önde tam eğimli (Tilt), arkada ise dikleşerek (0 tilt) masaya tam oturan yapı.
-                 const bendCurve = 1 - Math.pow(depthNorm, 2); // Önde 1 (tam eğim), arkada 0 (dik)
-                 const currentTilt = tiltAngleRad * bendCurve;
-                 const currentGap = gap * curve; // gap de yumuşakça sıfırlanıyor
+                 const curve = Math.cos(depthNorm * Math.PI / 2); // Boru dirseği gibi yumuşak 1'den 0'a
+                 const currentTilt = tiltAngleRad * curve;
+                 const currentGap = gap * curve; 
                  
                  const yFinal = y + baseH + currentGap;
 
