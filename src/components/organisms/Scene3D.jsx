@@ -3,45 +3,53 @@ import { Text3D, Center, PerspectiveCamera, OrbitControls } from '@react-three/d
 import * as THREE from 'three';
 
 /**
- * KAMA (WEDGE) GEOMETRİSİ
- * Yan kesiti bir üçgen olan prizma oluşturur:
- *   - Ön yüz (z = +hd, görüntüleyiciye bakan): baseH kadar alçak
- *   - Arka yüz (z = -hd, arkada):              baseH + letterH kadar yüksek
- *   - Alt yüz (y = 0):                         düz, 3D yazıcı tablası
- *   - Üst yüz:                                 ön-alçak → arka-yüksek eğimi
+ * KAMA (WEDGE) GEOMETRİSİ - DOĞRU YÖN
+ *
+ * Yan görünüm (sağdan bakış):
+ *
+ *   ████████  ← Harfler (dikey)
+ *   █      █
+ *   █      █─────────────────┐  ← Üst yüzey eğimli (öne doğru alçalır)
+ *   █      │                 │
+ *   ████████─────────────────┘
+ *   ▲ ÖN (tall = harfler burada dikey durur)
+ *                             ▲ ARKA (thin = sadece plaka kalınlığı)
+ *
+ * Öne baktığında harfleri görürsün.
+ * Arka yüzey ince → destek materyali GEREKMEZ (support-free FDM)
  */
 function createWedgeGeometry(W, frontH, backH, D) {
   const geo = new THREE.BufferGeometry();
   const hw = W / 2;
   const hd = D / 2;
 
-  // 8 köşe noktası
+  // frontH = tall (ön, görüntüleyiciye bakan)
+  // backH  = short (arka, masaya gömülen taraf)
   const positions = new Float32Array([
-    // Ön yüz (z = +hd) — kısa taraf
-    -hw,     0,  hd,  // 0: ön-alt-sol
-     hw,     0,  hd,  // 1: ön-alt-sağ
-     hw, frontH,  hd, // 2: ön-üst-sağ
-    -hw, frontH,  hd, // 3: ön-üst-sol
-    // Arka yüz (z = -hd) — uzun taraf
-    -hw,    0,  -hd,  // 4: arka-alt-sol
-     hw,    0,  -hd,  // 5: arka-alt-sağ
-     hw, backH, -hd,  // 6: arka-üst-sağ
-    -hw, backH, -hd,  // 7: arka-üst-sol
+    // ÖN YÜZ (z = +hd) — UZUN, harfler burada
+    -hw,      0,  hd,  // 0: ön-alt-sol
+     hw,      0,  hd,  // 1: ön-alt-sağ
+     hw, frontH,  hd,  // 2: ön-üst-sağ
+    -hw, frontH,  hd,  // 3: ön-üst-sol
+    // ARKA YÜZ (z = -hd) — KISA
+    -hw,     0, -hd,   // 4: arka-alt-sol
+     hw,     0, -hd,   // 5: arka-alt-sağ
+     hw, backH, -hd,   // 6: arka-üst-sağ
+    -hw, backH, -hd,   // 7: arka-üst-sol
   ]);
 
-  // Dışa bakan yüzeyler (saat yönünün tersine sarma = CCW)
   const indices = [
-    // Alt (y=0, aşağı bakan)
+    // Alt (y=0)
     0, 5, 4,   0, 1, 5,
-    // Ön (z=+hd, +Z yönü)
+    // Ön (z=+hd, harflerin arka yüzüyle kesişiyor)
     0, 2, 1,   0, 3, 2,
-    // Arka (z=-hd, -Z yönü)
+    // Arka (z=-hd)
     4, 6, 5,   4, 7, 6,
-    // Sol (x=-hw, -X yönü)
+    // Sol (x=-hw)
     0, 4, 7,   0, 7, 3,
-    // Sağ (x=+hw, +X yönü)
+    // Sağ (x=+hw)
     1, 2, 6,   1, 6, 5,
-    // Üst-eğimli (sloped top)
+    // Üst-eğimli (frontH'den backH'ye inen rampa)
     3, 7, 6,   3, 6, 2,
   ];
 
@@ -60,54 +68,52 @@ export const Scene3D = ({
   plateThickness,
   tiltAngle,
 }) => {
-  // Text3D boyutları ölçüldüğünde state'e kaydediliyor
   const [letterSize, setLetterSize] = useState({ width: 6.0, height: 1.0 });
 
-  // İtalik için Shear matrisi
   const shearMatrix = useMemo(() => {
     const matrix = new THREE.Matrix4();
     if (isItalic) {
       const angle = Math.tan(THREE.MathUtils.degToRad(12));
-      // Three.js r160 ve altı için 3 argümanlı overload kullan
       try { matrix.makeShear(angle, 0, 0, 0, 0, 0); }
-      catch { matrix.makeShear(angle, 0, 0); }
+      catch (_) { matrix.makeShear(angle, 0, 0); }
     }
     return matrix;
   }, [isItalic]);
 
-  // Temel ölçüler
-  const baseH   = plateThickness / 10;          // Tabanın ön yüzü (ince plaka)
+  const baseH   = plateThickness / 10;   // arka ince plaka yüksekliği
   const letterH = letterSize.height;
   const letterW = letterSize.width;
-  const backH   = baseH + letterH;               // Tabanın arka yüzü (harf yüksekliği + plaka)
 
-  // Kama derinliği: tan(açı) = yükseklik farkı / derinlik
+  // ÖN YÜZ UZUN  (harfler + plaka kalınlığı)
+  const frontH = baseH + letterH;
+  // ARKA YÜZ KISA (sadece plaka)
+  const backH  = baseH;
+
+  // Kama derinliği: tan(eğim) = (frontH - backH) / D = letterH / D
   const tiltRad = THREE.MathUtils.degToRad(Math.max(tiltAngle, 1));
-  const wedgeD  = letterH / Math.tan(tiltRad);  // Eğim açısına göre kama derinliği
-  const wedgeW  = letterW + 0.8;                 // Genişlik = harf genişliği + kenar boşluğu
+  const wedgeD  = letterH / Math.tan(tiltRad);
+  const wedgeW  = letterW + 0.8;
 
-  // Harf kalınlığı (extrude derinliği) — küçük tutuldu, esas destek kamadan geliyor
+  // Harf extrusion derinliği (kama içine gömülen miktar)
   const textDepth = isThicknessThick ? 0.45 : 0.18;
 
-  // Kama geometrisi sadece ölçüler değişince yeniden hesaplanır
   const wedgeGeo = useMemo(
-    () => createWedgeGeometry(wedgeW, baseH, backH, wedgeD),
-    [wedgeW, baseH, backH, wedgeD]
+    () => createWedgeGeometry(wedgeW, frontH, backH, wedgeD),
+    [wedgeW, frontH, backH, wedgeD]
   );
 
-  // Center bileşeni ölçümleri bildirdiğinde çalışır (sonsuz döngüyü önlemek için fark kontrolü)
   const handleCentered = ({ width, height }) => {
     setLetterSize(prev => {
       if (
-        Math.abs((prev.width  - width)  || 0) < 0.001 &&
-        Math.abs((prev.height - height) || 0) < 0.001
+        Math.abs((prev.width  - (width  ?? prev.width))  ) < 0.001 &&
+        Math.abs((prev.height - (height ?? prev.height)) ) < 0.001
       ) return prev;
       return { width: width ?? prev.width, height: height ?? prev.height };
     });
   };
 
-  // Modeli sahnede ortalamak için dikey offset
-  const groupOffsetY = -(baseH + letterH * 0.5);
+  // Sahne ortalaması
+  const groupOffsetY = -(frontH * 0.5);
 
   return (
     <>
@@ -117,28 +123,20 @@ export const Scene3D = ({
       <directionalLight position={[5, 10, 5]} intensity={1.5} castShadow />
       <pointLight position={[-5, 8, 3]} intensity={0.8} castShadow />
 
-      {/*
-        groupRef → STL Exporter bu group'u traverse ederek içindeki
-        tüm mesh'leri (kama + harfler) tek dosyaya yazar.
-      */}
       <group ref={groupRef} position={[0, groupOffsetY, 0]}>
 
-        {/* ── KAMA (WEDGE) TABAN ── */}
+        {/* ── KAMA TABAN ── */}
         <mesh geometry={wedgeGeo} receiveShadow castShadow>
-          <meshStandardMaterial
-            color={materialColor}
-            roughness={0.45}
-            metalness={0.08}
-          />
+          <meshStandardMaterial color={materialColor} roughness={0.45} metalness={0.08} />
         </mesh>
 
         {/*
           ── HARFLER ──
-          Tamamen DİKEY duruyorlar (rotation YOK).
-          Kama tabanının ön üst kenarından (y=baseH, z=+wedgeD/2) başlıyorlar.
-          Text3D varsayılan olarak +Z yönünde extrude ettiği için:
-            - Harfin arka yüzü, kamanın ön yüzüne gömülüyor (manifold birleşim)
-            - Harfin ön yüzü (+Z) görüntüleyiciye bakıyor
+          - DİKEY (rotation = 0)
+          - ÖN YÜZDE (z = +wedgeD/2) konumlandırılmış
+          - Alt hizası y = baseH (kamanın ön yüzündeki plaka üstü)
+          - Text3D +Z yönünde extrude eder → arka yüzü kama içine gömülür (manifold ✓)
+          - Görünen (ön) yüzü +Z yönünde → görüntüleyiciye bakıyor ✓
         */}
         <Center
           top
@@ -165,11 +163,7 @@ export const Scene3D = ({
             }}
           >
             {text || '73'}
-            <meshStandardMaterial
-              color={materialColor}
-              roughness={0.4}
-              metalness={0.1}
-            />
+            <meshStandardMaterial color={materialColor} roughness={0.4} metalness={0.1} />
           </Text3D>
         </Center>
 
