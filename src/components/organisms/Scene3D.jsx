@@ -19,8 +19,8 @@ export const Scene3D = ({
   const gap = 0.15; // 1.5mm hava payı
 
   const baseW = textSize[0] + 0.8;
-  const baseD = 1.4; // İyice kompakt plaka (14mm)
-  const baseCenterZ = -0.3; // Tablayı harf dibine iyice yaklaştırdık
+  const baseD = 1.8; // Genişletilmiş plato (18mm)
+  const baseCenterZ = -0.6; // Hizalama düzeltildi
 
   return (
     <>
