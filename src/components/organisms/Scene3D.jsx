@@ -32,8 +32,8 @@ export const Scene3D = ({
 
         {/* YAZI ("YAPIŞKAN SÜNME" - WEDGE TRANSFORMATION) */}
         <Text3D
-          key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}`}
-          font="/fonts/Plus_Jakarta_Sans_Bold.json"
+          key={`${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
+          font="/fonts/optimer_bold.typeface.json"
           size={1.0}
           height={textDepth}
           curveSegments={16}
