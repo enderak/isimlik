@@ -78,12 +78,11 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                 // 2. KADEMELİ TABLAYA YATIRMA (WEDGE TAPER)
-                 // Ön yüz (depthNorm=0) -> Havada asılı (y + baseH + gap)
-                 // Arka yüz (depthNorm=1) -> Tamamen tabla üstünde (baseH)
-                 const yFloating = y + baseH + gap;
-                 const yOnPlate = baseH;
-                 const yFinal = yFloating * (1 - depthNorm) + yOnPlate * depthNorm;
+                 // 2. YUMUŞAK VE ŞEKİLLERİ KORUYAN GEÇİŞ (CURVED SHAPE WRAP)
+                 // Bor köşesi gibi yumuşak (Cosine) bir iniş. 
+                 // Harfin kendi boyunu (y) ezmiyoruz, sadece masayla olan boşluğu (gap) arkaya doğru kapatıyoruz.
+                 const curve = Math.cos(depthNorm * Math.PI / 2); // 1'den 0'a yumuşak iniş
+                 const yFinal = y + baseH + (gap * curve);
 
                  // 3. Eğim (Tilt) ve İtalik
                  const zShift = - (y * Math.tan(tiltAngleRad));
