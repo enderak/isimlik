@@ -68,9 +68,14 @@ const App = () => {
 
           {/* Branding Footer (Left Col) */}
           <footer className="w-full max-w-sm flex flex-col items-center gap-1.5 opacity-60 mt-4 md:mb-10 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">
+            <a 
+              href="https://www.sakrad.org/hakkimizda/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-blue-500 transition-colors"
+            >
               SAKRAD - SAKARYA AMATÖR TELSİZCİLER VE RADYO AMATÖRLERİ DERNEĞİ
-            </p>
+            </a>
             <span className="text-[10px] text-slate-400 font-medium">Geliştirici TA2NLE</span>
           </footer>
         </div>
