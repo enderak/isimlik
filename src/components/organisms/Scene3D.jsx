@@ -53,43 +53,56 @@ export const Scene3D = ({
               self.geometry.computeBoundingBox();
               bbox = self.geometry.boundingBox;
               const minY = bbox.min.y;
+              const maxY = bbox.max.y;
+              const H = maxY - minY;
               
               const minZ = bbox.min.z; 
               const maxZ = bbox.max.z; 
               const D = maxZ - minZ; // Harfin extrude kalınlığı (textDepth)
 
+              // Orijinal Noktalar ve Normalleri Bloom için hazırlıyoruz
               const positions = self.geometry.attributes.position;
+              self.geometry.computeVertexNormals(); // Yumuşak Bloom'u dışa doğru şişirmek için
+              const normals = self.geometry.attributes.normal;
 
               const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
               const italicAngleRad = THREE.MathUtils.degToRad(12);
-
-              // 3. PÜRÜZSÜZ LİNEER (AFFINE) MATRİS DÖNÜŞÜMÜ
-              // Önceki koddaki çarpık "testere dişi" kıvrımlarının sebebi non-lineer (Y*Z) bir formül kullanmamdı.
-              // Formülü tamamen Saf Geometrik Shear (Kayma) matrisine çevirdik. Yüzeyler 100% pürüzsüz ve düz kalacak.
               
               for(let i = 0; i < positions.count; i++) {
                  const x = positions.getX(i);
                  const y = positions.getY(i);
                  const z = positions.getZ(i);
 
-                 // z 0'dan (Ön yüz) -D'ye (Arka yüz) doğru gider. absZ = derinlikteki mesafe.
                  const absZ = Math.abs(maxZ - z); 
+                 const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
+                 const heightNormInverse = H === 0 ? 0 : (maxY - y) / H; // Tepe=0. Alt zemin=1.
 
-                 // A) Y-Shear (Sünme): Derinliğe (Z'ye) bağlı olarak aşağı doğru kayma.
-                 // Ön yüz (absZ=0) -> 0. 
-                 // Arka yüz (absZ=D) -> harita -gap kadar aşağı iner.
-                 const yShift = D === 0 ? 0 : - (absZ / D) * gap;
+                 // === VİSKOZ BLOOM (BAL GİBİ SÜNEN YAYILMA EFEKTİ) ===
+                 // Sadece harfin arkasının alt kısmı tabana değdiği için o noktada şellale gibi (organik) yayılsın!
+                 // Havada kalan ön-alt kısımlar sivilce/tümör gibi şişmesin diye `depthNorm * heightNormInverse` ile sadece ORAYA odaklıyoruz.
+                 const contactProximity = depthNorm * heightNormInverse; 
+                 
+                 // Eğrisel bir yayılımla (sadece son 1-2 mm'de sert bir şişme, "damla" geçişi)
+                 const bloomPower = Math.pow(contactProximity, 5); 
+                 const bloomIntensity = 0.5; // (Birimi MM cinsinden genişleme gücü; max 0.5 birim şişkinlik)
 
-                 // B) Z-Shear (Eğim/Tilt): Yüksekliğe (Y'ye) bağlı olarak geriye doğru kayma.
-                 // Alt kısım (y=0) -> 0. 
-                 // Üst kısım -> geriye doğru yatar.
+                 const nx = normals.getX(i);
+                 const nz = normals.getZ(i); 
+
+                 const xBloom = nx * bloomPower * bloomIntensity;
+                 const zBloom = nz * bloomPower * bloomIntensity;
+
+                 // Şişmiş haldeki lokal koordinatlar
+                 const bX = x + xBloom;
+                 const bZ = z + zBloom;
+
+                 // === AFFINE TRANSFORMATION (DOĞRUSAL KAMA VE YATMA) MATRİSİ ===
+                 const yShift = D === 0 ? 0 : - (depthNorm) * gap;
                  const zShift = - (y * Math.tan(tiltAngleRad));
-
-                 // C) X-Shear (İtalik): Yüksekliğe bağlı olarak sağa kayma.
                  const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
 
-                 // Noktaları yeni lineer koordinatlarına taşıyoruz.
-                 positions.setXYZ(i, x + xShift, y + yShift, z + zShift);
+                 // Yeni konumları ayarla (Şişmiş X ve Z'ye Affine kaymaları ekle)
+                 positions.setXYZ(i, bX + xShift, y + yShift, bZ + zShift);
               }
 
               // 4. Transformasyon sonrası bütünü havaya (baseH + gap) kaldırıyoruz.
