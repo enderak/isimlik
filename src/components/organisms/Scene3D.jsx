@@ -36,7 +36,7 @@ export const Scene3D = ({
           key={`support-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
           size={1.0}
-          height={15} // DERİN EXTURZYON (KAMA KUYRUĞU)
+          height={6} // DAHA KISA KAM/KUYRUK (Aşırı geriye uzanmaz)
           curveSegments={16}
           bevelEnabled={false}
           onUpdate={(self) => {
@@ -77,8 +77,8 @@ export const Scene3D = ({
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
                  // 2. Destek uzaması (Sünme - Tabana değme)
-                 // Kuyruk kısmı (-15) kadar aşağı inerek masayı kesin delip geçer, havada kalan "3" gibi eğriler de mecburen yere yapışır.
-                 const yShift = D === 0 ? 0 : - (depthNorm) * 15;
+                 // Kuyruk kısmı (-6) kadar aşağı inerek masaya temas eder, gereksiz fazla aşağı/geriye inmez.
+                 const yShift = D === 0 ? 0 : - (depthNorm) * 6;
 
                  // 3. Eğim (Tilt) ve İtalik
                  const zShift = - (y * Math.tan(tiltAngleRad));
@@ -159,7 +159,7 @@ export const Scene3D = ({
 
         {/* TABAN PLAKASI */}
         <RoundedBox
-          position={[0, baseH / 2, 0]}
+          position={[0, baseH / 2, -3]} // TABANI 3MM GERİYE AL (Böylece harfler öne gelir)
           receiveShadow
           args={[baseW, baseH, baseD]}
           radius={0.05}
