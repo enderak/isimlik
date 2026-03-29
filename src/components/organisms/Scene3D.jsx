@@ -19,8 +19,8 @@ export const Scene3D = ({
   const gap = 0.15; // 1.5mm hava payı
 
   const baseW = textSize[0] + 0.8;
-  const baseD = 2.2; // Sabit ve geniş bir derinlik (22mm)
-  const baseCenterZ = -0.6; // Tablayı harf ve desteğin tam altına sabitle (Öpüşme garantili)
+  const baseD = 3.0; // 90 derece yatış için plaka derinliğini artırdık (30mm)
+  const baseCenterZ = -1.0; // Plakayı daha geriye aldık, yatış alanı için
 
   return (
     <>
@@ -78,14 +78,22 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                 // 2. GERÇEK BORU DİRSEĞİ (SPHERICAL PIPE ELBOW)
-                 // Boru dirseği gibi küresel bir yay çizerek iner (x^2 + y^2 = r^2 mantığı)
-                 const dropCurve = Math.sqrt(1 - Math.pow(depthNorm, 2)); // 1'den 0'a küresel kavis
-                 const currentTilt = tiltAngleRad * dropCurve;
-                 const yFinal = y + baseH + (gap * dropCurve) - 0.05; // 0.5mm ekstra gömülme (Öpüşme garantisi)
+                 // 2. 90-DERECE TAM BORU DİRSEĞİ (90° TOTAL PIPE BEND)
+                 // Harfin sırtını (arka yüzünü) masaya yatıran gerçek 90 derece büküm.
+                 // depthNorm boyunca açıyı tiltAngle'dan 90 dereceye (PI/2) taşıyoruz.
+                 const startAngle = tiltAngleRad;
+                 const endAngle = Math.PI / 2;
+                 const currentAngle = startAngle + (endAngle - startAngle) * Math.pow(depthNorm, 1.2); 
+                 
+                 // gap (hava payı) da dönüş boyunca sıfırlanıyor
+                 const currentGap = gap * (1 - depthNorm);
 
-                 // 3. Değişken Eğim (Tilt) ve İtalik
-                 const zShift = - (y * Math.tan(currentTilt));
+                 // ROTASYONEL DÖNÜŞ (y eksenini z'ye yatırıyoruz)
+                 // y' = y * cos(A), z' = y * sin(A)
+                 const yFinal = y * Math.cos(currentAngle) + baseH + currentGap;
+                 const zShift = - (y * Math.sin(currentAngle));
+
+                 // 3. İtalik (X ekseni kayması)
                  const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
 
                  positions.setXYZ(i, x + xShift, yFinal, z + zShift);
