@@ -9,18 +9,29 @@ export const Scene3D = ({
   isThicknessThick,
   materialColor,
   plateThickness,
-  tiltAngle
+  tiltAngle,
+  textOffset,
+  autoCenter
 }) => {
   const [textSize, setTextSize] = useState([6, 0.6, 0.6]);
 
-  const baseH = (plateThickness / 10);
-  const textDepth = isThicknessThick ? 0.3 : 0.15; // Daha zarif (3mm / 1.5mm)
-  const supportHeight = 0.8; // Daha belirgin bir ramp (8mm)
-  const gap = 0.15; // 1.5mm hava payı
+  const supportHeight = 20.0; // Milimetrik rampa (20mm)
+  const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
+  const zExtent = supportHeight + (30.0 * Math.tan(tiltAngleRad)); // Eğimden kaynaklı toplam derinlik
 
-  const baseW = textSize[0] + 1.2; // Yanlardaki pah yayılması için tabanı biraz daha genişlettik
-  const baseD = 1.8; // Genişletilmiş plato (18mm)
-  const baseCenterZ = -0.6; // Hizalama düzeltildi
+  // DİNAMİK TABAN PLAKASI (Eğim arttıkça taban büyür)
+  const baseD = zExtent + 20.0; // 20mm pay
+  const baseH = plateThickness; 
+  
+  // MERKEZLEME MANTIĞI
+  // autoCenter açıksa, metni plakanın tam ortasına (Z) çeker.
+  // Kapalıysa manuel textOffset kullanılır.
+  const zCenterOffset = autoCenter ? (-baseD / 2 + zExtent / 2) : textOffset;
+  const baseCenterZ = -baseD / 2;
+
+  const baseW = textSize[0] + 16.0; 
+  const textDepth = isThicknessThick ? 6.0 : 3.0;
+  const gap = 0.0;
 
   return (
     <>
@@ -30,15 +41,15 @@ export const Scene3D = ({
       <directionalLight position={[5, 10, 5]} intensity={1.5} castShadow />
       <pointLight position={[10, 10, 10]} intensity={1.2} castShadow />
 
-      <group ref={groupRef} position={[0, -1, 0]}>
+      <group ref={groupRef} position={[0, -1, zCenterOffset]}>
 
         {/* KATMAN 1: İÇ DESTEK KOLONU (INSET WEDGE) */}
         {/* Ana harften birazcık daha dar, tabana bağlanıp ana harfin altını dolduran destek yapısı */}
         <Text3D
           key={`support-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
-          size={1.0}
-          height={0.25} // EKSTREM KISA VE KIVRIMLI (2.5mm)
+          size={30.0} // Milimetrik harf boyu (30mm)
+          height={supportHeight}
           curveSegments={16}
           bevelEnabled={false}
           onUpdate={(self) => {
@@ -64,7 +75,7 @@ export const Scene3D = ({
               const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
               const italicAngleRad = THREE.MathUtils.degToRad(12);
               
-              const INSET_AMOUNT = 0.0; // Desteği ana harfle tam sıfıra sıfır yap (Boşluk kalmasın)
+              const INSET_AMOUNT = 0.2; // Desteği ana harfle tam sıfıra sıfır yap (Boşluk kalmasın)
 
               for(let i = 0; i < positions.count; i++) {
                  // 1. Normal (Yüzey yönü) ekseninde hizalama
@@ -79,25 +90,24 @@ export const Scene3D = ({
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
                  // 2. ÇOK AÇILI YUMUŞAK DİRSEK + YANAL PAH (TAPERED SOFT RADIUS)
-                 const startAngle = tiltAngleRad;
-                 const endAngle = Math.PI / 2;
-                 const curve = 1 - Math.cos(depthNorm * Math.PI / 2); 
-                 const currentAngle = startAngle + (endAngle - startAngle) * curve; 
-                 
-                 const currentGap = gap * (1 - curve);
+                  const startZ = -textDepth - (y * Math.tan(tiltAngleRad));
+                  const endZ = -supportHeight - (y * Math.tan(tiltAngleRad)); // Taban hizası
 
-                 // YANAL GENİŞLEME (Pah Etkisi): Masaya yaklaştıkça yanlara %25 yayıl
-                 const taperFactor = 1 + (curve * 0.0) + ((1 - curve) * 0.25);
-                 const xTapered = x * taperFactor;
+                  const curve = depthNorm; // 0=Harf tarafı, 1=Taban tarafı
 
-                 // ROTASYONEL DÖNÜŞ (Sırtı masaya yatırıyoruz)
-                 const yFinal = y * Math.cos(currentAngle) + baseH + currentGap;
-                 const zShift = - (y * Math.sin(currentAngle));
+                  // YANAL GENİŞLEME (Pah Etkisi): Sıfır yayılma (Sadece harfin kendi genişliği)
+                  const taperFactor = 1.0;
+                  const xTapered = x * taperFactor;
 
-                 // 3. İtalik (X ekseni kayması)
-                 const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
+                  // ÇEYREK DAİRE FİLLET (Yükselme Efekti): 
+                  // Harfin sırtıyla (startZ) taban (endZ) arasını kavisli (fillet) bağlar.
+                  const yFinal = y * Math.cos(curve * Math.PI / 2) + baseH;
+                  const zShift = startZ + ( (endZ - startZ) * Math.sin(curve * Math.PI / 2) );
 
-                 positions.setXYZ(i, xTapered + xShift, yFinal, z + zShift);
+                  // 3. İtalik (X ekseni kayması)
+                  const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
+
+                  positions.setXYZ(i, xTapered + xShift, yFinal, zShift);
               }
 
               // self.geometry.translate(0, baseH + gap, 0); // ARTIK DÖNGÜ İÇİNDE YAPILIYOR
@@ -117,7 +127,7 @@ export const Scene3D = ({
         <Text3D
           key={`main-${text}-${isItalic}-${isThicknessThick}-${tiltAngle}-optimer`}
           font="/fonts/optimer_bold.typeface.json"
-          size={1.0}
+          size={30.0} // Milimetrik harf boyu (30mm)
           height={textDepth}
           curveSegments={16}
           bevelEnabled={false}
@@ -137,19 +147,19 @@ export const Scene3D = ({
               const italicAngleRad = THREE.MathUtils.degToRad(12);
               
               for(let i = 0; i < positions.count; i++) {
-                 const x = positions.getX(i);
-                 const y = positions.getY(i);
-                 const z = positions.getZ(i);
+                  const x = positions.getX(i);
+                  const y = positions.getY(i);
+                  const z = positions.getZ(i);
 
-                 // SAF affine yatıklık (Sünme YOK, her yanı havada)
-                 const zShift = - (y * Math.tan(tiltAngleRad));
-                 const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
+                   // SAF AFFINE SHEAR (Resimdeki gibi üst yüzeyi düz tutar)
+                   const zShift = - (y * Math.tan(tiltAngleRad)) + z;
+                   const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;
 
-                 positions.setXYZ(i, x + xShift, y, z + zShift);
-              }
+                   positions.setXYZ(i, x + xShift, y, zShift);
+               }
 
-              // gap kadar BÜTÜN HARFİ havaya taşı (altı boşluk olacak, boşluğu Destek Kolonu dolduracak)
-              self.geometry.translate(0, baseH + gap, 0);
+               // gap kadar BÜTÜN HARFİ havaya taşı (altı boşluk olacak, boşluğu Destek Kolonu dolduracak)
+               self.geometry.translate(0, baseH + gap, 0);
 
               self.geometry.computeVertexNormals();
               self.geometry.computeBoundingBox();

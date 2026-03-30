@@ -10,6 +10,8 @@ export const SettingsCard = ({
   materialColor, setMaterialColor,
   plateThickness, setPlateThickness,
   tiltAngle, setTiltAngle,
+  textOffset, setTextOffset,
+  autoCenter, setAutoCenter,
   onExport 
 }) => {
   const { t, i18n } = useTranslation();
@@ -158,6 +160,40 @@ export const SettingsCard = ({
             onChange={(e) => setTiltAngle(parseInt(e.target.value))}
             className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 outline-none"
           />
+        </div>
+
+        {/* --- YENİ: KONUM AYARLARI --- */}
+        <div className="w-full h-px bg-slate-100/80 my-1"></div>
+        
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('alignment_settings')}</label>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setAutoCenter(!autoCenter)}>
+              <span className="text-[10px] font-bold text-slate-400">{t('auto_center')}</span>
+              <div className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors duration-300 ${
+                autoCenter ? 'bg-emerald-500' : 'bg-slate-200'
+              }`}>
+                <div className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-300 ${
+                  autoCenter ? 'translate-x-4' : 'translate-x-0'
+                }`} />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 opacity-90">
+             <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+               <span>{t('text_position')}</span>
+               <span>{textOffset > 0 ? '+' : ''}{textOffset}mm</span>
+             </div>
+             <input 
+               type="range" 
+               min="-30" max="30" step="1"
+               disabled={autoCenter}
+               value={textOffset}
+               onChange={(e) => setTextOffset(parseInt(e.target.value))}
+               className={`w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer outline-none accent-emerald-600 ${autoCenter ? 'opacity-30 cursor-not-allowed' : ''}`}
+             />
+          </div>
         </div>
       </div>
 

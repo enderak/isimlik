@@ -22,7 +22,10 @@ const resources = {
       "tip": "İpucu: {{angle}} derecelik bir eğim, desteklere ihtiyaç duymadan FDM baskı için yapısal kararlılığı artırır.",
       "export_ready": "DIŞA AKTARIMA HAZIR",
       "orbit_mode": "Yörünge Modu",
-      "developer": "Geliştirici"
+      "developer": "Geliştirici",
+      "alignment_settings": "KONUM AYARLARI",
+      "auto_center": "Otomatik Ortala",
+      "text_position": "Metin Konumu"
     }
   },
   EN: {
@@ -45,7 +48,10 @@ const resources = {
       "tip": "Tip: A {{angle}} degree tilt improves structural stability for FDM printing without needing supports.",
       "export_ready": "READY FOR EXPORT",
       "orbit_mode": "Orbit Mode",
-      "developer": "Developer"
+      "developer": "Developer",
+      "alignment_settings": "ALIGNMENT SETTINGS",
+      "auto_center": "Auto-Center",
+      "text_position": "Text Position"
     }
   },
   DE: {

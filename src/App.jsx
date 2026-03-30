@@ -7,12 +7,14 @@ import { Settings, User, Lightbulb, Search, RefreshCcw, Grid, Beaker } from 'luc
 import { useTranslation } from 'react-i18next';
 
 const App = () => {
-  const [text, setText] = useState('73');
+  const [text, setText] = useState('TA4TUN');
   const [isItalic, setIsItalic] = useState(false);
   const [isThicknessThick, setIsThicknessThick] = useState(true);
   const [materialColor, setMaterialColor] = useState('#22C55E'); // Default Sakarya Green
   const [plateThickness, setPlateThickness] = useState(4.5);
-  const [tiltAngle, setTiltAngle] = useState(15);
+  const [tiltAngle, setTiltAngle] = useState(25);
+  const [textOffset, setTextOffset] = useState(0);
+  const [autoCenter, setAutoCenter] = useState(true);
   const groupRef = useRef();
   const { t } = useTranslation();
 
@@ -57,6 +59,10 @@ const App = () => {
             setPlateThickness={setPlateThickness}
             tiltAngle={tiltAngle}
             setTiltAngle={setTiltAngle}
+            textOffset={textOffset}
+            setTextOffset={setTextOffset}
+            autoCenter={autoCenter}
+            setAutoCenter={setAutoCenter}
             onExport={() => handleExport(groupRef, text)}
           />
 
@@ -117,8 +123,8 @@ const App = () => {
 
           {/* Width / Height display markers (Visual only mockup) */}
           <div className="absolute left-6 top-32 flex flex-col gap-3 z-10 pointer-events-none opacity-40">
-            <div className="flex items-center gap-2 text-[10px] font-mono whitespace-nowrap"><div className="w-8 h-px bg-slate-600"></div> W: {Math.max((text.length * 15), 30)}mm</div>
-            <div className="flex items-center gap-2 text-[10px] font-mono whitespace-nowrap"><div className="w-8 h-px bg-slate-600"></div> H: {Math.max((text.length * 0.5 * 10), 15)}mm</div>
+            <div className="flex items-center gap-2 text-[10px] font-mono whitespace-nowrap"><div className="w-8 h-px bg-slate-600"></div> W: {Math.max((text.length * 28), 30)}mm</div>
+            <div className="flex items-center gap-2 text-[10px] font-mono whitespace-nowrap"><div className="w-8 h-px bg-slate-600"></div> H: 30mm</div>
           </div>
 
           {/* The Actual Canvas */}
@@ -126,7 +132,7 @@ const App = () => {
             {/* Soft gradient background simulating floor in canvas behind 3D space */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#f8fbff] to-white/50 pointer-events-none"></div>
             
-            <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 5, 12], fov: 45 }}>
+            <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 80, 250], fov: 45 }}>
               <Scene3D 
                 text={text} 
                 isItalic={isItalic} 
@@ -135,6 +141,8 @@ const App = () => {
                 materialColor={materialColor}
                 plateThickness={plateThickness}
                 tiltAngle={tiltAngle}
+                textOffset={textOffset}
+                autoCenter={autoCenter}
               />
             </Canvas>
           </div>
