@@ -11,7 +11,8 @@ export const Scene3D = ({
   plateThickness,
   tiltAngle,
   textOffset,
-  autoCenter
+  autoCenter,
+  arcRadius
 }) => {
   const [textSize, setTextSize] = useState([6, 0.6, 0.6]);
 
@@ -89,20 +90,25 @@ export const Scene3D = ({
                  const absZ = Math.abs(maxZ - positions.getZ(i)); 
                  const depthNorm = D === 0 ? 0 : (absZ / D); // Ön yüz=0. Arka yüz=1.
 
-                 // 2. ÇOK AÇILI YUMUŞAK DİRSEK + YANAL PAH (TAPERED SOFT RADIUS)
-                  const startZ = -textDepth - (y * Math.tan(tiltAngleRad));
-                  const endZ = -supportHeight - (y * Math.tan(tiltAngleRad)); // Taban hizası
+                  // 2. GELİŞMİŞ ARC SWEEP MANTIĞI (R yarıçaplı kavis)
+                  const progress = depthNorm; // 0=Ön, 1=Arka
+                  
+                  // Yay boyunca ilerleme açısı (Radyan)
+                  // 90 derecelik bir kavis (çeyrek daire) için:
+                  const angle = progress * (Math.PI / 2);
+                  
+                  // Kavisli yer değiştirme (Fixed Orientation Sweep)
+                  // Harfin sırtından tabana doğru R yarıçaplı bir yay çizer
+                  const yOffset = arcRadius * (1 - Math.cos(angle));
+                  const zOffset = arcRadius * Math.sin(angle);
 
-                  const curve = depthNorm; // 0=Harf tarafı, 1=Taban tarafı
+                  const startZ = -textDepth - (y * Math.tan(tiltAngleRad));
+                  const yFinal = (y - yOffset) + baseH;
+                  const zShift = startZ - zOffset;
 
                   // YANAL GENİŞLEME (Pah Etkisi): Sıfır yayılma (Sadece harfin kendi genişliği)
                   const taperFactor = 1.0;
                   const xTapered = x * taperFactor;
-
-                  // ÇEYREK DAİRE FİLLET (Yükselme Efekti): 
-                  // Harfin sırtıyla (startZ) taban (endZ) arasını kavisli (fillet) bağlar.
-                  const yFinal = y * Math.cos(curve * Math.PI / 2) + baseH;
-                  const zShift = startZ + ( (endZ - startZ) * Math.sin(curve * Math.PI / 2) );
 
                   // 3. İtalik (X ekseni kayması)
                   const xShift = isItalic ? (y * Math.tan(italicAngleRad)) : 0;

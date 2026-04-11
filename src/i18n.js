@@ -25,7 +25,8 @@ const resources = {
       "developer": "Geliştirici",
       "alignment_settings": "KONUM AYARLARI",
       "auto_center": "Otomatik Ortala",
-      "text_position": "Metin Konumu"
+      "text_position": "Metin Konumu",
+      "arc_radius": "KAVİS YARIÇAPI (R)"
     }
   },
   EN: {
@@ -51,7 +52,8 @@ const resources = {
       "developer": "Developer",
       "alignment_settings": "ALIGNMENT SETTINGS",
       "auto_center": "Auto-Center",
-      "text_position": "Text Position"
+      "text_position": "Text Position",
+      "arc_radius": "ARC RADIUS (R)"
     }
   },
   DE: {
@@ -74,7 +76,8 @@ const resources = {
       "tip": "Tipp: Ein Neigungswinkel von {{angle}} Grad verbessert die strukturelle Stabilität für den FDM-Druck ohne Stützstrukturen.",
       "export_ready": "BEREIT ZUM EXPORT",
       "orbit_mode": "Orbit-Modus",
-      "developer": "Entwickler"
+      "developer": "Entwickler",
+      "arc_radius": "BOGENRADIUS (R)"
     }
   },
   AZ: {
@@ -97,7 +100,8 @@ const resources = {
       "tip": "İpucu: {{angle}} dərəcəlik bir əyilmə, dəstəyə ehtiyac olmadan FDM çapı üçün struktur dayanıqlığını artırır.",
       "export_ready": "İXRACA HAZIRDIR",
       "orbit_mode": "Orbit Rejimi",
-      "developer": "Tərtibatçı"
+      "developer": "Tərtibatçı",
+      "arc_radius": "QÖVS RADİUSU (R)"
     }
   }
 };

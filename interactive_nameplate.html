@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive 3D Nameplate</title>
+  <style>
+    :root {
+      --bg-color: #f7f8fa;
+    }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-color);
+      color: #333;
+    }
+    #ui-container {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 24px 32px;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      min-width: 280px;
+      z-index: 10;
+    }
+    .input-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+    }
+    input[type="text"] {
+      padding: 12px 16px;
+      font-size: 18px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      outline: none;
+      font-weight: 800;
+      text-transform: uppercase;
+      transition: all 0.2s;
+      background: #fff;
+      color: #1e293b;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+    input[type="text"]::placeholder {
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+    input[type="text"]:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+    .color-picker {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .color-btn-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    .color-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .color-btn-wrapper:hover .color-btn {
+      transform: scale(1.15) translateY(-2px);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+    }
+    .color-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #64748b;
+      transition: color 0.2s;
+    }
+    .color-btn-wrapper:hover .color-label {
+      color: #1e293b;
+    }
+    .active .color-btn {
+      transform: scale(1.15);
+      border-color: #6366f1;
+    }
+    .active .color-label {
+      color: #6366f1;
+      font-weight: 700;
+    }
+
+    #c-black { background: #1a1a1a; }
+    #c-white { background: #f0f0f0; }
+    #c-gold { background: linear-gradient(135deg, #c9a84c 0%, #a67c00 100%); }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 14px;
+      font-weight: 600;
+      color: #888;
+      pointer-events: none;
+      transition: opacity 0.5s;
+    }
+  </style>
+
+  <!-- Import maps polyfill -->
+  <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+  
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+
+<div id="loading">Loading 3D Engine & Fonts...</div>
+
+<div id="ui-container" style="opacity: 0; pointer-events: none; transition: opacity 0.5s;">
+  <div class="input-wrapper">
+    <label for="name-input">Nameplate Text</label>
+    <input type="text" id="name-input" value="ANTIGRAVITY" maxlength="14" placeholder="Enter Name..." autocomplete="off">
+  </div>
+  
+  <div class="color-picker">
+    <div class="color-btn-wrapper active" id="btn-black" onclick="setColor('#1a1a1a', 0.8, 0.2, 'btn-black')">
+      <div class="color-btn" id="c-black"></div>
+      <span class="color-label">Black</span>
+    </div>
+    <div class="color-btn-wrapper" id="btn-white" onclick="setColor('#f4f4f4', 0.5, 0.1, 'btn-white')">
+      <div class="color-btn" id="c-white"></div>
+      <span class="color-label">Pearl</span>
+    </div>
+    <div class="color-btn-wrapper" id="btn-gold" onclick="setColor('#d4af37', 0.3, 0.8, 'btn-gold')">
+      <div class="color-btn" id="c-gold"></div>
+      <span class="color-label">Gold</span>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { FontLoader } from 'three/addons/loaders/FontLoader.js';
+import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// --- Scene Setup ---
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#f7f8fa');
+scene.fog = new THREE.Fog('#f7f8fa', 30, 150);
+
+const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+// Isometric-ish angled view
+camera.position.set(0, 25, 60);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.maxPolarAngle = Math.PI / 2 - 0.05; // Don't go below ground
+controls.minDistance = 20;
+controls.maxDistance = 100;
+controls.target.set(0, 2, 0);
+
+// --- Lighting ---
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.5);
+dirLight.position.set(-15, 30, 15);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 100;
+const d = 25;
+dirLight.shadow.camera.left = -d;
+dirLight.shadow.camera.right = d;
+dirLight.shadow.camera.top = d;
+dirLight.shadow.camera.bottom = -d;
+dirLight.shadow.bias = -0.0005;
+scene.add(dirLight);
+
+const fillLight = new THREE.DirectionalLight(0xe6f0ff, 0.6);
+fillLight.position.set(20, 10, -10);
+scene.add(fillLight);
+
+const backLight = new THREE.PointLight(0xffffff, 0.5, 50);
+backLight.position.set(0, 5, -20);
+scene.add(backLight);
+
+// --- Environment / Ground ---
+const planeGeo = new THREE.PlaneGeometry(500, 500);
+const planeMat = new THREE.ShadowMaterial({ opacity: 0.15 });
+const plane = new THREE.Mesh(planeGeo, planeMat);
+plane.rotation.x = -Math.PI / 2;
+plane.position.y = -1; // Floor level
+plane.receiveShadow = true;
+scene.add(plane);
+
+// A subtle grid/floor plane for better visual grounding
+const gridMat = new THREE.MeshStandardMaterial({ 
+    color: '#e2e8f0', 
+    roughness: 1, 
+    metalness: 0 
+});
+const visualPlane = new THREE.Mesh(planeGeo, gridMat);
+visualPlane.rotation.x = -Math.PI / 2;
+visualPlane.position.y = -1.05;
+visualPlane.receiveShadow = true;
+scene.add(visualPlane);
+
+// --- Nameplate Group ---
+const nameplateGroup = new THREE.Group();
+scene.add(nameplateGroup);
+
+// --- Procedural 3D Print Layer Texture ---
+const createLayerTexture = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 4;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    
+    // Base color
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 4, 32);
+    
+    // Draw subtle horizontal lines
+    ctx.fillStyle = '#e0e0e0';
+    for(let i = 0; i < 32; i += 4) {
+        ctx.fillRect(0, i, 4, 2);
+    }
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    // Repeat to make lines small and dense
+    texture.repeat.set(1, 0.5);
+    return texture;
+};
+
+const layerTexture = createLayerTexture();
+
+// --- Materials ---
+let currentParams = { color: '#1a1a1a', roughness: 0.8, metalness: 0.2 };
+
+// Base material is always dark charcoal
+const baseMat = new THREE.MeshStandardMaterial({ 
+    color: '#222222',
+    roughness: 0.9,
+    metalness: 0.1,
+    bumpMap: layerTexture,
+    bumpScale: 0.02
+});
+
+// Text material changes based on selection
+const textMat = new THREE.MeshStandardMaterial({
+    color: currentParams.color,
+    roughness: currentParams.roughness,
+    metalness: currentParams.metalness,
+    bumpMap: layerTexture,
+    bumpScale: 0.015,
+});
+
+// Hover material with glow
+const hoverMat = new THREE.MeshStandardMaterial({
+    color: currentParams.color,
+    roughness: Math.max(0.2, currentParams.roughness - 0.3),
+    metalness: Math.min(1.0, currentParams.metalness + 0.2),
+    emissive: new THREE.Color(currentParams.color),
+    emissiveIntensity: 0.4,
+    bumpMap: layerTexture,
+    bumpScale: 0.015,
+});
+
+// --- Base Mesh ---
+// Rectangular base with slightly chamfered/rounded appearance using cylinder + box or just box
+const baseGeo = new THREE.BoxGeometry(10, 1.5, 5);
+const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+// Position so top of base is at y=0 roughly
+baseMesh.position.y = -0.75;
+baseMesh.castShadow = true;
+baseMesh.receiveShadow = true;
+nameplateGroup.add(baseMesh);
+
+// --- Text Generation ---
+let letters = [];
+const fontLoader = new FontLoader();
+let currentFont = null;
+
+// Load a bold sans-serif font
+fontLoader.load('https://unpkg.com/three@0.160.0/examples/fonts/helvetiker_bold.typeface.json', (font) => {
+    currentFont = font;
+    document.getElementById('loading').style.opacity = '0';
+    document.getElementById('ui-container').style.opacity = '1';
+    document.getElementById('ui-container').style.pointerEvents = 'auto';
+    buildText(document.getElementById('name-input').value);
+});
+
+function buildText(textStr) {
+    // Clean up old letters
+    letters.forEach(l => {
+        nameplateGroup.remove(l.mesh);
+        l.mesh.geometry.dispose();
+    });
+    letters = [];
+
+    if(!currentFont || !textStr) {
+        baseMesh.visible = false;
+        return;
+    }
+    
+    baseMesh.visible = true;
+
+    const spacing = 0.3;
+    const textSize = 4;
+    const textDepth = 1.5;
+
+    let letterData = [];
+    let totalWidth = 0;
+
+    // Pass 1: Measure
+    for (let i = 0; i < textStr.length; i++) {
+        const char = textStr[i];
+        if (char === ' ') {
+            letterData.push({ isSpace: true, width: textSize * 0.5 });
+            totalWidth += textSize * 0.5 + spacing;
+            continue;
+        }
+
+        const geo = new TextGeometry(char, {
+            font: currentFont,
+            size: textSize,
+            depth: textDepth, // older three.js used 'height' instead of 'depth', newer uses 'depth'.
+            curveSegments: 6,
+            bevelEnabled: true,
+            bevelThickness: 0.15,
+            bevelSize: 0.08,
+            bevelOffset: 0,
+            bevelSegments: 4
+        });
+        
+        // Fix for geometry differences across versions:
+        if (!geo.boundingBox) geo.computeBoundingBox();
+        const width = geo.boundingBox.max.x - geo.boundingBox.min.x;
+        
+        // Center the local geometry origin for better rotation/scaling
+        geo.translate(-geo.boundingBox.min.x - width/2, 0, -textDepth/2);
+
+        letterData.push({ isSpace: false, geo: geo, width: width, char: char });
+        totalWidth += width + spacing;
+    }
+    
+    if (totalWidth > 0) totalWidth -= spacing;
+
+    // Resize and position base plate
+    const basePadding = 4;
+    baseMesh.scale.x = (totalWidth + basePadding) / 10; 
+    // update UVs so texture doesn't stretch badly
+    baseMesh.material.map = layerTexture;
+
+    // Pass 2: Place
+    let currentX = -totalWidth / 2;
+    const now = Date.now();
+
+    letterData.forEach((data, index) => {
+        if (data.isSpace) {
+            currentX += data.width + spacing;
+            return;
+        }
+
+        const mesh = new THREE.Mesh(data.geo, textMat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        
+        const targetX = currentX + data.width / 2;
+        
+        // Setup initial position below base for animation
+        mesh.position.set(targetX, -5, 0);
+
+        // Store animation and state data
+        mesh.userData = {
+            baseY: 0,
+            targetY: 0,
+            hoverOffset: 0.8, // Float height on hover
+            phase: (index * 0.5), // For staggered bobbing
+            isHovered: false,
+            animStartX: targetX,
+            animStartY: -8, // Pop from below
+            animDelay: index * 60, // ms stagger
+            animStartTime: now,
+            char: data.char
+        };
+        
+        nameplateGroup.add(mesh);
+        letters.push({ mesh });
+
+        currentX += data.width + spacing;
+    });
+}
+
+// --- Interaction & UI ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let lastInteractionTime = Date.now();
+
+window.addEventListener('mousemove', (e) => {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    lastInteractionTime = Date.now();
+});
+
+// Touch support for mobile hover effect
+window.addEventListener('touchstart', (e) => {
+    if(e.touches.length > 0) {
+        mouse.x = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
+        lastInteractionTime = Date.now();
+    }
+}, {passive: true});
+
+document.getElementById('name-input').addEventListener('input', (e) => {
+    const val = e.target.value.replace(/[^a-zA-Z0-9\s]/g, '').toUpperCase();
+    e.target.value = val;
+    buildText(val);
+    lastInteractionTime = Date.now();
+});
+
+window.setColor = function(hex, r, m, btnId) {
+    currentParams = { color: hex, roughness: r, metalness: m };
+    
+    textMat.color.set(hex);
+    textMat.roughness = r;
+    textMat.metalness = m;
+    textMat.needsUpdate = true;
+    
+    hoverMat.color.set(hex);
+    hoverMat.roughness = Math.max(0.2, r - 0.3);
+    hoverMat.metalness = Math.min(1.0, m + 0.2);
+    // Dark colors get stronger emissive relatively to show glow
+    const isDark = (r > 0.6); 
+    hoverMat.emissive.set(hex);
+    hoverMat.emissiveIntensity = isDark ? 0.8 : 0.3;
+    hoverMat.needsUpdate = true;
+
+    // Update active UI button
+    document.querySelectorAll('.color-btn-wrapper').forEach(el => el.classList.remove('active'));
+    document.getElementById(btnId).classList.add('active');
+    
+    lastInteractionTime = Date.now();
+};
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Easing function for the satisfying bounce entrance
+function easeOutElastic(x) {
+    const c4 = (2 * Math.PI) / 3;
+    return x === 0 ? 0 : x === 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - 0.75) * c4) + 1;
+}
+
+// --- Animation Loop ---
+const clock = new THREE.Clock();
+let baseRotationY = 0;
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    const time = Date.now();
+    const dt = clock.getDelta();
+
+    // Raycast
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(letters.map(l => l.mesh));
+    
+    let hoveredMesh = null;
+    if (intersects.length > 0) {
+        hoveredMesh = intersects[0].object;
+    }
+
+    let cursorStyle = 'default';
+
+    letters.forEach((l) => {
+        const mesh = l.mesh;
+        const ud = mesh.userData;
+        
+        // Entrance animation calculation
+        const elapsed = time - ud.animStartTime;
+        let p = 0; // Progress
+        if (elapsed > ud.animDelay) {
+            p = Math.min((elapsed - ud.animDelay) / 1200, 1);
+            p = easeOutElastic(p); // Elastic bounce
+        }
+
+        // Hover state update
+        if (mesh === hoveredMesh) {
+            ud.isHovered = true;
+            mesh.material = hoverMat;
+            cursorStyle = 'pointer';
+        } else {
+            ud.isHovered = false;
+            if (mesh.material !== textMat) mesh.material = textMat;
+        }
+
+        // Idle floating (sine wave)
+        // Only start floating after entrance is mostly done
+        let bobAmount = 0;
+        if(p > 0.9) {
+            bobAmount = Math.sin((time * 0.002) + ud.phase) * 0.15;
+        }
+
+        const targetY = ud.isHovered ? ud.hoverOffset : ud.baseY + bobAmount;
+
+        // Apply positions
+        if (p < 1) {
+            // During entrance, blend from startY to targetY
+            const currentBaseY = THREE.MathUtils.lerp(ud.animStartY, ud.baseY, p);
+            mesh.position.y = currentBaseY;
+        } else {
+            // Smoothly move to target Y (hover or bobbing)
+            mesh.position.y = THREE.MathUtils.lerp(mesh.position.y, targetY, dt * 10);
+            
+            // Add slight rotation tilt on hover
+            const targetRotX = ud.isHovered ? -0.1 : 0;
+            const targetRotZ = ud.isHovered ? 0.05 : 0;
+            mesh.rotation.x = THREE.MathUtils.lerp(mesh.rotation.x, targetRotX, dt * 10);
+            mesh.rotation.z = THREE.MathUtils.lerp(mesh.rotation.z, targetRotZ, dt * 10);
+        }
+    });
+
+    document.body.style.cursor = cursorStyle;
+
+    // Idle Auto-Rotation of the whole plate
+    if (time - lastInteractionTime > 3000) {
+        const idleTime = (time - lastInteractionTime - 3000) * 0.0005;
+        const targetRot = Math.sin(idleTime) * 0.25; // Sways ~14 degrees
+        baseRotationY = THREE.MathUtils.lerp(baseRotationY, targetRot, dt * 1.5);
+    } else {
+        baseRotationY = THREE.MathUtils.lerp(baseRotationY, 0, dt * 4);
+    }
+    nameplateGroup.rotation.y = baseRotationY;
+
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+// Start loop
+animate();
+</script>
+</body>
+</html>

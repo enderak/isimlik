@@ -12,6 +12,7 @@ export const SettingsCard = ({
   tiltAngle, setTiltAngle,
   textOffset, setTextOffset,
   autoCenter, setAutoCenter,
+  arcRadius, setArcRadius,
   onExport 
 }) => {
   const { t, i18n } = useTranslation();
@@ -158,6 +159,21 @@ export const SettingsCard = ({
             min="0" max="45" step="1"
             value={tiltAngle}
             onChange={(e) => setTiltAngle(parseInt(e.target.value))}
+            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 outline-none"
+          />
+        </div>
+
+        {/* Kavis Yarıçapı (R) */}
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+            <span>{t('arc_radius')}</span>
+            <span>{arcRadius}mm</span>
+          </div>
+          <input 
+            type="range" 
+            min="10" max="200" step="5"
+            value={arcRadius}
+            onChange={(e) => setArcRadius(parseInt(e.target.value))}
             className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 outline-none"
           />
         </div>

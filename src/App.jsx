@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Scene3D } from './components/organisms/Scene3D';
 import { SettingsCard } from './components/molecules/SettingsCard';
+import { AIPipelinePanel } from './components/organisms/AIPipelinePanel';
 import { handleExport } from './utils/exportUtils';
 import { Settings, User, Lightbulb, Search, RefreshCcw, Grid, Beaker } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +16,7 @@ const App = () => {
   const [tiltAngle, setTiltAngle] = useState(25);
   const [textOffset, setTextOffset] = useState(0);
   const [autoCenter, setAutoCenter] = useState(true);
+  const [arcRadius, setArcRadius] = useState(50);
   const groupRef = useRef();
   const { t } = useTranslation();
 
@@ -63,8 +65,13 @@ const App = () => {
             setTextOffset={setTextOffset}
             autoCenter={autoCenter}
             setAutoCenter={setAutoCenter}
+            arcRadius={arcRadius}
+            setArcRadius={setArcRadius}
             onExport={() => handleExport(groupRef, text)}
           />
+
+          {/* AI Pipeline Panel */}
+          <AIPipelinePanel text={text} />
 
           {/* Warning Tip */}
           <div className="bg-[#FEF5E7] p-4 rounded-xl shadow-sm border border-orange-100/50 flex gap-3 text-sm text-amber-800/80 w-full max-w-sm">
@@ -143,6 +150,7 @@ const App = () => {
                 tiltAngle={tiltAngle}
                 textOffset={textOffset}
                 autoCenter={autoCenter}
+                arcRadius={arcRadius}
               />
             </Canvas>
           </div>

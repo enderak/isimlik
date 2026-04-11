@@ -12,6 +12,12 @@ dist
 dist-ssr
 *.local
 
+# AI Pipeline backend
+server/.env
+server/tmp/
+server/cache/
+server/node_modules/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
