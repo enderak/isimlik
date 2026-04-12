@@ -3,16 +3,15 @@ import { Canvas } from '@react-three/fiber';
 import { Scene3D } from './components/organisms/Scene3D';
 import { SettingsCard } from './components/molecules/SettingsCard';
 import { handleExport } from './utils/exportUtils';
-import { Settings, User, Lightbulb, Search, RefreshCcw, Grid, Beaker } from 'lucide-react';
+import { Lightbulb, Search, RefreshCcw, Grid, Beaker } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const App = () => {
-  const [text, setText] = useState('TA2NLE');
+  const [text, setText] = useState('YM2KY');
   const [isItalic, setIsItalic] = useState(false);
   const [isThicknessThick, setIsThicknessThick] = useState(true);
   const [materialColor, setMaterialColor] = useState('#22C55E'); // Yazı Rengi
   const [baseColor, setBaseColor] = useState('#0F172A'); // Taban Rengi
-  const [plateThickness, setPlateThickness] = useState(4.5);
   const [tiltAngle, setTiltAngle] = useState(34);
   const [targetWidth, setTargetWidth] = useState(200); // 20 cm
   const [textOffset, setTextOffset] = useState(0);
@@ -20,7 +19,7 @@ const App = () => {
   const [arcRadius, setArcRadius] = useState(30);
   const [baseHeight, setBaseHeight] = useState(7.5);
   const groupRef = useRef();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return (
     <div className="min-h-screen w-full bg-[#f4f5f8] flex flex-col font-sans text-slate-900 pb-24 md:pb-0 relative overflow-x-hidden">
@@ -28,20 +27,16 @@ const App = () => {
       {/* Top Navigation */}
       <header className="px-6 py-4 flex justify-between items-center w-full max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white shadow-md shadow-emerald-600/20">
-            <Beaker size={20} />
-          </div>
+          <img 
+            src="/sakrad_logo.png" 
+            alt="SAKRAD Logo" 
+            className="w-8 h-8 object-contain drop-shadow-md"
+          />
           <h1 className="font-bold tracking-tight text-lg text-slate-800">
             {t('title')}
           </h1>
         </div>
         <div className="flex items-center gap-4">
-          <button className="text-slate-500 hover:text-slate-700 transition-colors">
-            <Settings size={22} />
-          </button>
-          <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-white shadow-sm cursor-pointer hover:bg-slate-800">
-            <User size={18} />
-          </div>
         </div>
       </header>
 
@@ -50,6 +45,36 @@ const App = () => {
         
         {/* Left Column: Settings */}
         <div className="w-full md:w-auto flex flex-col gap-6 items-center md:items-start z-10 shrink-0">
+          {/* Branding Header (Moved to top) */}
+          <div className="relative w-full max-w-sm flex flex-col items-center gap-3 text-center bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50 overflow-hidden group/card">
+            <a 
+              href="https://www.sakrad.org/hakkimizda/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group flex flex-col items-center gap-1.5 relative z-10 py-2"
+            >
+              <div className="flex items-center gap-3">
+                <img 
+                  src="/sakrad_logo.png" 
+                  alt="SAKRAD Logo" 
+                  className="w-10 h-10 object-contain group-hover:scale-110 transition-transform duration-300"
+                />
+                <div className="text-3xl font-[1000] tracking-[0.25em] text-slate-950 group-hover:text-emerald-700 transition-colors drop-shadow-sm">
+                  SAKRAD
+                </div>
+              </div>
+              <div className="text-[11px] font-extrabold tracking-widest text-slate-800 max-w-[300px] leading-tight mt-1">
+                SAKARYA AMATÖR TELSİZCİLER VE RADYO AMATÖRLERİ DERNEĞİ
+              </div>
+            </a>
+            
+            <div className="w-16 h-px bg-slate-200/80 my-1 relative z-10"></div>
+            
+            <div className="flex items-center gap-2 text-[12px] text-slate-500 font-bold relative z-10">
+              {t('developer')} <strong className="text-emerald-700 font-black bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 shadow-sm">TA2NLE</strong>
+            </div>
+          </div>
+
           <SettingsCard 
             text={text} 
             setText={setText}
@@ -61,8 +86,6 @@ const App = () => {
             setMaterialColor={setMaterialColor}
             baseColor={baseColor}
             setBaseColor={setBaseColor}
-            plateThickness={plateThickness}
-            setPlateThickness={setPlateThickness}
             tiltAngle={tiltAngle}
             setTiltAngle={setTiltAngle}
             textOffset={textOffset}
@@ -94,30 +117,15 @@ const App = () => {
                 {t('ams_tip')}
               </p>
             </div>
+
+            <div className="bg-rose-50 p-4 rounded-xl shadow-sm border border-rose-100/50 flex gap-3 text-sm text-rose-800/80">
+              <p className="leading-tight text-[12px]">
+                {t('ignore_cantilever')}
+              </p>
+            </div>
           </div>
 
-          {/* Branding Footer (Left Col) */}
-          <footer className="w-full max-w-sm flex flex-col items-center gap-3 mt-4 md:mb-10 text-center bg-white p-6 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50">
-            <a 
-              href="https://www.sakrad.org/hakkimizda/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="group flex flex-col items-center gap-1.5"
-            >
-              <div className="text-xl font-black tracking-[0.2em] text-slate-900 group-hover:text-emerald-600 transition-colors">
-                SAKRAD
-              </div>
-              <div className="text-[10px] font-semibold tracking-wider text-slate-500 max-w-[280px]">
-                SAKARYA AMATÖR TELSİZCİLER VE RADYO AMATÖRLERİ DERNEĞİ
-              </div>
-            </a>
-            
-            <div className="w-16 h-px bg-slate-200/80 my-1"></div>
-            
-            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
-              {t('developer')} <strong className="text-slate-700 font-bold bg-slate-100 px-2 py-0.5 rounded-md">TA2NLE</strong>
-            </div>
-          </footer>
+
         </div>
 
         {/* Right Column: 3D Canvas */}
@@ -162,7 +170,6 @@ const App = () => {
                 isThicknessThick={isThicknessThick}
                 materialColor={materialColor}
                 baseColor={baseColor}
-                plateThickness={plateThickness}
                 tiltAngle={tiltAngle}
                 textOffset={textOffset}
                 autoCenter={autoCenter}

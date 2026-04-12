@@ -28,59 +28,40 @@ export const handleExport = (groupRef, fileName = "SAKRAD_Isimlik", isMultiColor
   const originalScale = groupRef.current.scale.clone();
   const originalRotation = groupRef.current.rotation.clone();
 
+  // DUAL EXPORT VE SINGLE EXPORT İÇİN TEK GEÇERLİ BOYUT DÜZELTMESİ (Garantili!)
+  // Sahnede model 0.05 oranında küçüktür (ekrana sığması için). 
+  // Gerçek mm'ye ulaşmak için export anında (ana ebeveyne dokunmadan) bunu 20 ile çarpıyoruz.
+  groupRef.current.scale.multiplyScalar(20);
+  groupRef.current.rotation.x += Math.PI / 2;
+  groupRef.current.updateMatrixWorld(true);
+
   if (isMultiColor) {
     const zip = new JSZip();
 
-    // 1. Yazıları Kaldır, Sadece Tabanı Aktar
-    const baseClone = groupRef.current.clone();
-    
-    // DİKKAT: baseClone ebeveynden koptuğu için Scene3D'deki 0.1 scale etkisinden çıkmış olur.
-    // Bu yüzden burada scale'i 10 ile ÇARPMIYORUZ (çarpınca 2 metre oluyor).
-    // Sadece Z-Up için 90 derece takla attırmamız yeterli!
-    baseClone.rotation.x += Math.PI / 2;
-    
-    const toRemoveBase = [];
-    baseClone.traverse((child) => {
-      if (child.name && child.name.startsWith("Text")) {
-        toRemoveBase.push(child);
-      }
-    });
-    toRemoveBase.forEach(c => c.parent && c.parent.remove(c));
-    baseClone.updateMatrixWorld(true);
-    
-    const baseResult = exporter.parse(baseClone, { binary: true });
+    // Sahnedeki (orijinal) çocukları güvenle ayır
+    const allChildren = [...groupRef.current.children];
+
+    // 1. SADECE TABANI AKTAR
+    groupRef.current.children = allChildren.filter(c => !c.name || !c.name.startsWith("Text"));
+    groupRef.current.updateMatrixWorld(true);
+    const baseResult = exporter.parse(groupRef.current, { binary: true });
     zip.file(`${fileName}_TABAN.stl`, baseResult.buffer);
 
-    // 2. Tabanı Kaldır, Sadece Yazıları Aktar
-    const textClone = groupRef.current.clone();
-    
-    // Aynı Şekilde: 10 ile çarpma, sadece takla attır
-    textClone.rotation.x += Math.PI / 2;
-    
-    const toRemoveText = [];
-    textClone.traverse((child) => {
-      if (child.name && child.name.startsWith("Base")) {
-        toRemoveText.push(child);
-      }
-    });
-    toRemoveText.forEach(c => c.parent && c.parent.remove(c));
-    textClone.updateMatrixWorld(true);
-
-    const textResult = exporter.parse(textClone, { binary: true });
+    // 2. SADECE YAZILARI AKTAR
+    groupRef.current.children = allChildren.filter(c => c.name && c.name.startsWith("Text"));
+    groupRef.current.updateMatrixWorld(true);
+    const textResult = exporter.parse(groupRef.current, { binary: true });
     zip.file(`${fileName}_YAZI.stl`, textResult.buffer);
+
+    // Çocukları eski haline getir
+    groupRef.current.children = allChildren;
     
-    // Klasörü Sıkıştır ve Zip olarak indir
+    // Zip indir
     zip.generateAsync({ type: "blob" }).then((content) => {
       downloadBlob(content, `${fileName}_CiftRenk.zip`);
     });
 
   } else {
-    // Tek Parça Çıktı: groupRef sahneye bağlı olduğu için ebeveynin 0.1 ölçek küçültmesini taşır.
-    // Bu küçültmeyi yenmek için 10 ile çarparak 1:1 mm ölçüsüne getiriyoruz.
-    groupRef.current.scale.multiplyScalar(10);
-    groupRef.current.rotation.x += Math.PI / 2;
-    groupRef.current.updateMatrixWorld(true);
-
     // Binary format daha az yer kaplar ve 3D yazıcılar için idealdir
     const result = exporter.parse(groupRef.current, { binary: true });
     const blob = new Blob([result], { type: 'application/octet-stream' });

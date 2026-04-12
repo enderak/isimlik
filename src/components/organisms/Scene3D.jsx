@@ -1,10 +1,30 @@
 import React, { useMemo, useState } from 'react';
-import { Text3D, PerspectiveCamera, OrbitControls, RoundedBox } from '@react-three/drei';
+import { Text3D, PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 
 // Milimetrik değerleri Three.js sahne birimine çevir
 // 1mm = 0.1 birim (böylece 30mm harf = 3 birim → ekrana güzel sığar)
-const SCALE = 0.1;
+const SCALE = 0.05;
+
+// Taban plakası için kavisli dikdörtgen şablonu (Saat yönünün tersine çizilmeli, yoksa normaller ters döner!)
+const createRoundedRectShape = (width, depth, radius) => {
+  const shape = new THREE.Shape();
+  const x = -width / 2;
+  const y = -depth / 2;
+  
+  // Saatin Ters Yönü (Counter-Clockwise - Doğru 3D normali için)
+  shape.moveTo(x + radius, y);
+  shape.lineTo(x + width - radius, y);
+  shape.quadraticCurveTo(x + width, y, x + width, y + radius);
+  shape.lineTo(x + width, y + depth - radius);
+  shape.quadraticCurveTo(x + width, y + depth, x + width - radius, y + depth);
+  shape.lineTo(x + radius, y + depth);
+  shape.quadraticCurveTo(x, y + depth, x, y + depth - radius);
+  shape.lineTo(x, y + radius);
+  shape.quadraticCurveTo(x, y, x + radius, y);
+  
+  return shape;
+};
 
 export const Scene3D = ({
   text,
@@ -13,7 +33,6 @@ export const Scene3D = ({
   isThicknessThick,
   materialColor,
   baseColor,
-  plateThickness,
   tiltAngle,
   textOffset,
   autoCenter,
@@ -29,13 +48,14 @@ export const Scene3D = ({
   const tiltAngleRad = THREE.MathUtils.degToRad(tiltAngle);
   const zExtent = supportDepth + (letterSize * Math.tan(tiltAngleRad));
 
-  // DİNAMİK TABAN PLAKASI
+  // DİNAMİK TABAN PLAKASI 
+  // Orijinal optimal derinliğe dönüldü
   const baseD = zExtent + 20.0;    // Derinlik (mm)
   const baseH = baseHeight;        // Kullanıcı kontrollü yükseklik (mm)
   
   // MERKEZleme
-  const zCenterOffset = autoCenter ? (-baseD / 2 + zExtent / 2) : textOffset;
   const baseCenterZ = -baseD / 2;
+  const zCenterOffset = autoCenter ? (-baseD / 2 + zExtent / 2) : textOffset;
 
   const baseW = textSize[0] + 16.0; 
   const textDepth = isThicknessThick ? 6.0 : 3.0;
@@ -48,15 +68,18 @@ export const Scene3D = ({
   const scaledBaseW = baseW * innerScale;
   const scaledBaseD = baseD * innerScale;
 
+  // Dümdüz tabanlı kusursuz plaka profili
+  const baseShape = useMemo(() => createRoundedRectShape(baseW, baseD, Math.min(2, baseW/2, baseD/2)), [baseW, baseD]);
+
   return (
     <>
       {/* Kamera: modelin tam ortasını gösterir */}
-      <PerspectiveCamera makeDefault position={[0, 4, 14]} fov={50} />
+      <PerspectiveCamera makeDefault position={[10, 12, 28]} fov={38} />
       <OrbitControls 
         makeDefault 
         minPolarAngle={0.2} 
         maxPolarAngle={Math.PI / 1.8}
-        target={[0, 0.5, -1]}
+        target={[0, 1, -3]}
       />
       <ambientLight intensity={0.9} />
       <directionalLight position={[5, 10, 5]} intensity={1.5} castShadow />
@@ -205,33 +228,39 @@ export const Scene3D = ({
           <meshStandardMaterial color={materialColor} roughness={0.4} metalness={0.1} />
         </Text3D>
 
-        {/* TABAN PLAKASI — Koyu renkli, üstünde chamfer çizgisi */}
-        <RoundedBox
-          name="BasePlate"
-          position={[0, baseH / 2, baseCenterZ]}
+        {/* TABAN PLAKASI — Koyu renkli
+            Eskiden RoundedBox kullanılıyordu but bu alt köşeleri de yuvarlattığı için
+            "Yüzen konsol" hatasına sebep oluyordu. Şimdi 2D ExtrudeGeometry ile 
+            alt kısmı %100 düz (0 mm havaya kalkma) jilet gibi bir obje üretiyoruz. */}
+        <mesh 
+          name="BasePlate" 
+          position={[0, 0, baseCenterZ]} 
+          rotation={[-Math.PI / 2, 0, 0]}
           receiveShadow
-          args={[baseW, baseH, baseD]}
-          radius={0.5}
-          smoothness={4}
-          creased
         >
+          <extrudeGeometry args={[baseShape, { depth: baseH, bevelEnabled: false }]} />
           <meshStandardMaterial color={baseColor || '#334155'} roughness={0.8} />
-        </RoundedBox>
+        </mesh>
 
-        {/* Chamfer görsel efekti: Üst kenarlarda pahlı kenar */}
-        {chamferSize > 0.5 && (
-          <mesh name="BaseChamfer" position={[0, baseH - 0.05, baseCenterZ]} receiveShadow>
-            <boxGeometry args={[baseW - chamferSize * 0.6, 0.3, baseD - chamferSize * 0.6]} />
-            <meshStandardMaterial 
-              color="#475569" 
-              roughness={0.6} 
-              metalness={0.05}
-              transparent
-              opacity={0.6}
-            />
-          </mesh>
-        )}
+        </group>
 
+        {/* ---------------- GÖRSEL EFEKTLER (STL'E GİRMEZ) ---------------- */}
+        
+        {/* Chamfer görsel efekti: Üst kenarlarda pahlı kenar. Sadece arayüz içindir,
+            STL çıktısına girip üst yüzeyi bozmaması için export grubunun dışına alındı. */}
+        <group scale={[innerScale, innerScale, innerScale]}>
+          {chamferSize > 0.5 && (
+            <mesh name="VisualChamfer" position={[0, baseH - 0.05, baseCenterZ]} receiveShadow>
+              <boxGeometry args={[baseW - chamferSize * 0.6, 0.3, baseD - chamferSize * 0.6]} />
+              <meshStandardMaterial 
+                color="#475569" 
+                roughness={0.6} 
+                metalness={0.05}
+                transparent
+                opacity={0.6}
+              />
+            </mesh>
+          )}
         </group>
 
         {/* ZEMİN GÖLGE DÜZLEMI (Sadece arayüzde görünür, STL'e gitmez) */}

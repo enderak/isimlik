@@ -31,29 +31,33 @@ export const SettingsCard = ({
   return (
     <div className="bg-white p-6 sm:p-8 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100/50 flex flex-col gap-6 w-full max-w-sm shrink-0">
       
-      {/* Header */}
-      <div>
-        <h2 className="text-slate-800 font-bold text-lg leading-tight">{t('settings_title')}</h2>
-        <p className="text-xs text-slate-400 font-medium tracking-tight mt-1">
-          {t('settings_desc')}
-        </p>
-      </div>
-
-      {/* Language / Dil */}
+      {/* Language Selector */}
       <div className="flex flex-col gap-2">
-        <label className="text-[11px] font-bold text-slate-500">{t('language')}</label>
-        <div className="relative">
-          <select 
-            className="w-full bg-white border border-slate-200/80 text-sm text-slate-700 py-3 px-4 rounded-xl appearance-none outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50/50 transition-all cursor-pointer"
-            value={i18n.language}
-            onChange={(e) => i18n.changeLanguage(e.target.value)}
-          >
-            <option value="TR">Türkçe (TR)</option>
-            <option value="AZ">Azərbaycanca (AZ)</option>
-            <option value="EN">English (EN)</option>
-            <option value="DE">Deutsch (DE)</option>
-          </select>
-          <Globe size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <label className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
+          <Globe size={12} />
+          {t('language')}
+        </label>
+        <div className="bg-slate-100/80 p-1 rounded-xl flex items-center h-11 w-full relative">
+          {[
+            { code: 'TR', name: 'TÜRKÇE' },
+            { code: 'AZ', name: 'AZƏRBAYCANCA' },
+            { code: 'ES', name: 'ESPAÑOL' },
+            { code: 'DE', name: 'DEUTSCH' },
+            { code: 'EN', name: 'ENGLISH' },
+          ].map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => i18n.changeLanguage(lang.code)}
+              title={lang.name}
+              className={`z-10 flex-1 text-[11px] font-bold tracking-wider rounded-lg h-full transition-all flex items-center justify-center ${
+                i18n.language === lang.code 
+                  ? 'bg-white shadow-sm text-emerald-600' 
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {lang.code}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -157,20 +161,7 @@ export const SettingsCard = ({
 
       {/* Sliders */}
       <div className="flex flex-col gap-4 mt-2">
-        {/* Plaka Kalınlığı */}
-        <div className="flex flex-col gap-3">
-          <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
-            <span>{t('plate_thickness')}</span>
-            <span>{plateThickness.toFixed(1)}mm</span>
-          </div>
-          <input 
-            type="range" 
-            min="2" max="10" step="0.5"
-            value={plateThickness}
-            onChange={(e) => setPlateThickness(parseFloat(e.target.value))}
-            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 outline-none"
-          />
-        </div>
+
 
         {/* Eğim Açısı */}
         <div className="flex flex-col gap-3">
@@ -260,52 +251,23 @@ export const SettingsCard = ({
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 mt-2">
-          <div className="flex justify-between items-center">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('alignment_settings')}</label>
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setAutoCenter(!autoCenter)}>
-              <span className="text-[10px] font-bold text-slate-400">{t('auto_center')}</span>
-              <div className={`w-8 h-4 rounded-full flex items-center px-0.5 transition-colors duration-300 ${
-                autoCenter ? 'bg-emerald-500' : 'bg-slate-200'
-              }`}>
-                <div className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-300 ${
-                  autoCenter ? 'translate-x-4' : 'translate-x-0'
-                }`} />
-              </div>
-            </div>
-          </div>
 
-          <div className="flex flex-col gap-3 opacity-90">
-             <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-               <span>{t('text_position')}</span>
-               <span>{textOffset > 0 ? '+' : ''}{textOffset}mm</span>
-             </div>
-             <input 
-               type="range" 
-               min="-30" max="30" step="1"
-               disabled={autoCenter}
-               value={textOffset}
-               onChange={(e) => setTextOffset(parseInt(e.target.value))}
-               className={`w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer outline-none accent-emerald-600 ${autoCenter ? 'opacity-30 cursor-not-allowed' : ''}`}
-             />
-          </div>
-        </div>
       </div>
 
       {/* Export Buttons */}
-      <div className="flex flex-col gap-3 mt-2">
+      <div className="flex flex-row gap-3 mt-4">
         <button 
           onClick={() => onExport(false)}
-          className="w-full bg-[#059669] hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-lg shadow-emerald-500/20 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-sm"
+          className="flex-1 bg-[#059669] hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-lg shadow-emerald-500/20 py-3.5 px-2 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-all active:scale-95 text-[11px] text-center"
         >
           <Download size={18} />
           {t('export_single')}
         </button>
         <button 
           onClick={() => onExport(true)}
-          className="w-full bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white shadow-lg shadow-slate-900/20 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-sm border border-slate-700"
+          className="flex-1 bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white shadow-lg shadow-slate-900/20 py-3.5 px-2 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-all active:scale-95 text-[11px] text-center border border-slate-700"
         >
-          <div className="flex items-center -space-x-2 mr-1">
+          <div className="flex items-center -space-x-2">
             <span className="w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-slate-800 z-10"></span>
             <span className="w-3 h-3 rounded-full bg-yellow-500 ring-2 ring-slate-800 z-0"></span>
           </div>
