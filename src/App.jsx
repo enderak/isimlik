@@ -2,21 +2,23 @@ import React, { useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Scene3D } from './components/organisms/Scene3D';
 import { SettingsCard } from './components/molecules/SettingsCard';
-import { AIPipelinePanel } from './components/organisms/AIPipelinePanel';
 import { handleExport } from './utils/exportUtils';
 import { Settings, User, Lightbulb, Search, RefreshCcw, Grid, Beaker } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const App = () => {
-  const [text, setText] = useState('TA4TUN');
+  const [text, setText] = useState('TA2NLE');
   const [isItalic, setIsItalic] = useState(false);
   const [isThicknessThick, setIsThicknessThick] = useState(true);
-  const [materialColor, setMaterialColor] = useState('#22C55E'); // Default Sakarya Green
+  const [materialColor, setMaterialColor] = useState('#22C55E'); // Yazı Rengi
+  const [baseColor, setBaseColor] = useState('#0F172A'); // Taban Rengi
   const [plateThickness, setPlateThickness] = useState(4.5);
-  const [tiltAngle, setTiltAngle] = useState(25);
+  const [tiltAngle, setTiltAngle] = useState(34);
+  const [targetWidth, setTargetWidth] = useState(200); // 20 cm
   const [textOffset, setTextOffset] = useState(0);
   const [autoCenter, setAutoCenter] = useState(true);
-  const [arcRadius, setArcRadius] = useState(50);
+  const [arcRadius, setArcRadius] = useState(30);
+  const [baseHeight, setBaseHeight] = useState(7.5);
   const groupRef = useRef();
   const { t } = useTranslation();
 
@@ -57,6 +59,8 @@ const App = () => {
             setIsThicknessThick={setIsThicknessThick}
             materialColor={materialColor}
             setMaterialColor={setMaterialColor}
+            baseColor={baseColor}
+            setBaseColor={setBaseColor}
             plateThickness={plateThickness}
             setPlateThickness={setPlateThickness}
             tiltAngle={tiltAngle}
@@ -67,18 +71,29 @@ const App = () => {
             setAutoCenter={setAutoCenter}
             arcRadius={arcRadius}
             setArcRadius={setArcRadius}
-            onExport={() => handleExport(groupRef, text)}
+            baseHeight={baseHeight}
+            setBaseHeight={setBaseHeight}
+            targetWidth={targetWidth}
+            setTargetWidth={setTargetWidth}
+            onExport={(isMultiColor) => handleExport(groupRef, text, isMultiColor)}
           />
 
-          {/* AI Pipeline Panel */}
-          <AIPipelinePanel text={text} />
-
-          {/* Warning Tip */}
-          <div className="bg-[#FEF5E7] p-4 rounded-xl shadow-sm border border-orange-100/50 flex gap-3 text-sm text-amber-800/80 w-full max-w-sm">
-            <Lightbulb size={20} className="text-amber-700 shrink-0 mt-0.5" />
-            <p className="leading-snug text-[13px]">
-              {t('tip', { angle: tiltAngle })}
-            </p>
+          {/* Tips Section */}
+          <div className="flex flex-col gap-3 w-full max-w-sm">
+            <div className="bg-[#FEF5E7] p-4 rounded-xl shadow-sm border border-orange-100/50 flex gap-3 text-sm text-amber-800/80">
+              <Lightbulb size={20} className="text-amber-700 shrink-0 mt-0.5" />
+              <p className="leading-snug text-[13px]">
+                {t('tip', { angle: tiltAngle })}
+              </p>
+            </div>
+            
+            <div className="bg-emerald-50 p-4 rounded-xl shadow-sm border border-emerald-100/50 flex gap-3 text-sm text-emerald-800/80">
+              <span className="text-lg shrink-0 mt-0.5">🎨</span>
+              <p className="leading-tight text-[12px]">
+                <strong className="block mb-1 text-emerald-900">{t('ams_tip_title')}</strong>
+                {t('ams_tip')}
+              </p>
+            </div>
           </div>
 
           {/* Branding Footer (Left Col) */}
@@ -139,18 +154,21 @@ const App = () => {
             {/* Soft gradient background simulating floor in canvas behind 3D space */}
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#f8fbff] to-white/50 pointer-events-none"></div>
             
-            <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 80, 250], fov: 45 }}>
+            <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 4, 14], fov: 50 }}>
               <Scene3D 
                 text={text} 
                 isItalic={isItalic} 
                 groupRef={groupRef}
                 isThicknessThick={isThicknessThick}
                 materialColor={materialColor}
+                baseColor={baseColor}
                 plateThickness={plateThickness}
                 tiltAngle={tiltAngle}
                 textOffset={textOffset}
                 autoCenter={autoCenter}
                 arcRadius={arcRadius}
+                baseHeight={baseHeight}
+                targetWidth={targetWidth}
               />
             </Canvas>
           </div>

@@ -19,14 +19,24 @@ const resources = {
       "plate_thickness": "PLAKA KALINLIĞI",
       "tilt_angle": "EĞİM AÇISI",
       "export_btn": "STL DOSYASI OLARAK ÇIKAR",
-      "tip": "İpucu: {{angle}} derecelik bir eğim, desteklere ihtiyaç duymadan FDM baskı için yapısal kararlılığı artırır.",
+      "tip": "İpucu: 30-40 derece arası bir eğim (geriye yatıklık), destek (support) kullanmadan kusursuz FDM baskıları almanızı sağlar.",
       "export_ready": "DIŞA AKTARIMA HAZIR",
       "orbit_mode": "Yörünge Modu",
       "developer": "Geliştirici",
       "alignment_settings": "KONUM AYARLARI",
       "auto_center": "Otomatik Ortala",
       "text_position": "Metin Konumu",
-      "arc_radius": "KAVİS YARIÇAPI (R)"
+      "arc_radius": "KAVİS YARIÇAPI (R)",
+      "base_height": "TABAN YÜKSEKLİĞİ",
+      "label_text_color": "Yazı Rengi",
+      "label_base_color": "Taban Plakası Rengi",
+      "fixed_length": "Sabit Uzunluk (Üretim)",
+      "auto": "OTO",
+      "auto_length_tooltip": "Harf sayısına göre otomatik uzunluk",
+      "export_single": "Tek Parça STL İndir",
+      "export_multi": "Çift Renk (AMS) STL İndir",
+      "ams_tip_title": "Çoklu Renk (AMS) Baskı",
+      "ams_tip": "İndirdiğiniz ZIP dosyasındaki iki parçayı Bambu Studio'ya aynı anda sürükleyin. 'Tek obje olarak yüklensin mi?' sorusuna EVET deyin. Sol taraftaki Objeler (Objects) panelinden parçalara sağ tıklayıp farklı renk (flament) atayabilirsiniz."
     }
   },
   EN: {
@@ -46,14 +56,24 @@ const resources = {
       "plate_thickness": "PLATE THICKNESS",
       "tilt_angle": "TILT ANGLE",
       "export_btn": "EXPORT AS STL",
-      "tip": "Tip: A {{angle}} degree tilt improves structural stability for FDM printing without needing supports.",
+      "tip": "Tip: A tilt angle between 30-40 degrees ensures flawless FDM prints without the need for supports.",
       "export_ready": "READY FOR EXPORT",
       "orbit_mode": "Orbit Mode",
       "developer": "Developer",
       "alignment_settings": "ALIGNMENT SETTINGS",
       "auto_center": "Auto-Center",
       "text_position": "Text Position",
-      "arc_radius": "ARC RADIUS (R)"
+      "arc_radius": "ARC RADIUS (R)",
+      "base_height": "BASE HEIGHT",
+      "label_text_color": "Text Color",
+      "label_base_color": "Base Plate Color",
+      "fixed_length": "Fixed Length (Production)",
+      "auto": "AUTO",
+      "auto_length_tooltip": "Automatic length based on letter count",
+      "export_single": "Download Single Part STL",
+      "export_multi": "Download Dual-Color (AMS) ZIP",
+      "ams_tip_title": "Multi-Color (AMS) Printing",
+      "ams_tip": "Drag both pieces from the downloaded ZIP into Bambu Studio simultaneously. Click YES when asked 'Load as single object?'. You can assign different colors by right-clicking parts in the Objects panel on the left."
     }
   },
   DE: {
@@ -73,11 +93,21 @@ const resources = {
       "plate_thickness": "PLATTENDICKE",
       "tilt_angle": "NEIGUNGSWINKEL",
       "export_btn": "ALS STL EXPORTIEREN",
-      "tip": "Tipp: Ein Neigungswinkel von {{angle}} Grad verbessert die strukturelle Stabilität für den FDM-Druck ohne Stützstrukturen.",
+      "tip": "Tipp: Ein Neigungswinkel zwischen 30-40 Grad sorgt für fehlerfreie FDM-Drucke ohne Stützstrukturen.",
       "export_ready": "BEREIT ZUM EXPORT",
       "orbit_mode": "Orbit-Modus",
       "developer": "Entwickler",
-      "arc_radius": "BOGENRADIUS (R)"
+      "arc_radius": "BOGENRADIUS (R)",
+      "base_height": "BASISHÖHE",
+      "label_text_color": "Textfarbe",
+      "label_base_color": "Grundplattenfarbe",
+      "fixed_length": "Feste Länge (Produktion)",
+      "auto": "AUTO",
+      "auto_length_tooltip": "Automatische Länge basierend auf Buchstabenanzahl",
+      "export_single": "Einzel-STL herunterladen",
+      "export_multi": "Zweifarbige (AMS) ZIP herunterladen",
+      "ams_tip_title": "Mehrfarbiger (AMS) Druck",
+      "ams_tip": "Ziehen Sie beide Dateien aus der heruntergeladenen ZIP-Datei gleichzeitig in Bambu Studio. Klicken Sie auf JA, wenn Sie gefragt werden: 'Als einzelnes Objekt laden?'. Sie können verschiedene Farben zuweisen, indem Sie im Objektabschitt mit der rechten Maustaste klicken."
     }
   },
   AZ: {
@@ -97,11 +127,21 @@ const resources = {
       "plate_thickness": "LÖVHƏ QALINLIĞI",
       "tilt_angle": "ƏYİLMƏ BUCAĞI",
       "export_btn": "STL FAYLI KİMİ ÇIXAR",
-      "tip": "İpucu: {{angle}} dərəcəlik bir əyilmə, dəstəyə ehtiyac olmadan FDM çapı üçün struktur dayanıqlığını artırır.",
+      "tip": "İpucu: 30-40 dərəcəlik bir əyilmə, dəstəyə ehtiyac olmadan qüsursuz FDM çapını təmin edir.",
       "export_ready": "İXRACA HAZIRDIR",
       "orbit_mode": "Orbit Rejimi",
       "developer": "Tərtibatçı",
-      "arc_radius": "QÖVS RADİUSU (R)"
+      "arc_radius": "QÖVS RADİUSU (R)",
+      "base_height": "BAZA HÜNDÜRLÜYü",
+      "label_text_color": "Yazı Rəngi",
+      "label_base_color": "Baza Lövhəsi Rəngi",
+      "fixed_length": "Sabit Uzunluq (İstehsal)",
+      "auto": "AVTO",
+      "auto_length_tooltip": "Hərf sayına görə avtomatik uzunluq",
+      "export_single": "Tək Parça STL Yüklə",
+      "export_multi": "Çox Rəngli (AMS) ZIP Yüklə",
+      "ams_tip_title": "Çox Rəngli (AMS) Çap",
+      "ams_tip": "Yüklədiyiniz ZIP faylındakı iki parçanı eyni anda Bambu Studio-ya sürükləyin. 'Tək obyekt kimi yüklənsin?' sualına BƏLİ deyin. Sol tərəfdəki Obyektlər panelindən hissələrə sağ klikləməklə müxtəlif rənglər (filament) təyin edə bilərsiniz."
     }
   }
 };

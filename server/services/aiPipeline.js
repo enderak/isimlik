@@ -203,6 +203,59 @@ scale([0.1, -0.1, 1])
 }
 
 // ============================================================
+// 5b. CADQUERY STL EXPORT (Sweep-based, Python subprocess)
+// ============================================================
+
+function generateSTLFromCadQuery(text, stlPath, sweepParams = {}, reqForCancel) {
+  return new Promise((resolve, reject) => {
+    const pythonPath = process.env.PYTHON_PATH || 'python';
+    const scriptPath = path.resolve('../generator_cq.py');
+    
+    const { arcRadius = 50, baseHeight = 5 } = sweepParams;
+
+    const args = [
+      scriptPath,
+      '--text', text,
+      '--arc_radius', String(arcRadius),
+      '--base_height', String(baseHeight),
+      '--chamfer', '3',
+      '--output', path.resolve(stlPath),
+    ];
+
+    console.log(`[CADQUERY] Running: ${pythonPath} ${args.join(' ')}`);
+
+    const child = execFile(pythonPath, args, { timeout: 60000 }, (err, stdout, stderr) => {
+      if (stdout) console.log(`[CADQUERY stdout] ${stdout}`);
+      if (stderr) console.log(`[CADQUERY stderr] ${stderr}`);
+      
+      if (err) {
+        if (err.killed) {
+          return reject(new Error('CadQuery timed out after 60 seconds'));
+        }
+        return reject(new Error(`CadQuery failed: ${err.message}\nStderr: ${stderr}`));
+      }
+
+      if (!fs.existsSync(path.resolve(stlPath))) {
+        return reject(new Error('CadQuery completed but STL file not found'));
+      }
+
+      console.log(`[STL] CadQuery generated: ${stlPath}`);
+      resolve(stlPath);
+    });
+
+    // Kill Python if request is cancelled
+    if (reqForCancel) {
+      reqForCancel.on('close', () => {
+        if (!child.killed) {
+          child.kill('SIGTERM');
+          console.log(`[CANCEL] CadQuery process killed`);
+        }
+      });
+    }
+  });
+}
+
+// ============================================================
 // 6. CACHE HELPERS
 // ============================================================
 
@@ -236,7 +289,7 @@ async function waitForLock(lockPath, timeoutMs = 60000) {
 // 7. MAIN PIPELINE ORCHESTRATOR
 // ============================================================
 
-export async function runPipeline(text, style = 'standard', req = null) {
+export async function runPipeline(text, style = 'standard', req = null, sweepParams = {}) {
   const jobId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const tempDir = process.env.TEMP_DIR || './tmp';
   const cacheDir = process.env.CACHE_DIR || './cache';
@@ -272,7 +325,9 @@ export async function runPipeline(text, style = 'standard', req = null) {
     console.log(`[JOB ${jobId}] Step 1: Prompt built (${prompt.length} chars)`);
 
     // ---- STEP 2: Check cache ----
-    const cacheKey = getCacheKey(prompt);
+    // Cache key includes sweep params for uniqueness
+    const { arcRadius = 50, baseHeight = 5 } = sweepParams;
+    const cacheKey = getCacheKey(`${prompt}|R${arcRadius}|H${baseHeight}`);
     const cachePath = getCachePath(cacheKey);
     const lockPath = getLockPath(cacheKey);
 
@@ -303,9 +358,16 @@ export async function runPipeline(text, style = 'standard', req = null) {
     console.log(`[JOB ${jobId}] Step 6: Vectorizing via Potrace...`);
     await vectorize(tempClean, tempSvg);
 
-    // ---- STEP 7: Generate STL via OpenSCAD ----
-    console.log(`[JOB ${jobId}] Step 7: Generating STL via OpenSCAD...`);
-    await generateSTLFromSVG(tempSvg, tempStl, req);
+    // ---- STEP 7: Generate STL ----
+    // Try CadQuery sweep first, fallback to OpenSCAD
+    console.log(`[JOB ${jobId}] Step 7: Generating STL (CadQuery sweep → OpenSCAD fallback)...`);
+    try {
+      await generateSTLFromCadQuery(text, tempStl, sweepParams, req);
+      console.log(`[JOB ${jobId}] CadQuery sweep succeeded ✓`);
+    } catch (cqErr) {
+      console.log(`[JOB ${jobId}] CadQuery failed: ${cqErr.message}. Falling back to OpenSCAD...`);
+      await generateSTLFromSVG(tempSvg, tempStl, req);
+    }
 
     // ---- STEP 8: Cache the result ----
     await fs.copy(tempStl, cachePath);
@@ -318,7 +380,7 @@ export async function runPipeline(text, style = 'standard', req = null) {
 
   } catch (err) {
     // Release lock on error
-    const cacheKey = getCacheKey(buildPrompt(text, style));
+    const cacheKey = getCacheKey(`${buildPrompt(text, style)}|R${sweepParams.arcRadius || 50}|H${sweepParams.baseHeight || 5}`);
     const lockPath = getLockPath(cacheKey);
     await fs.remove(lockPath).catch(() => {});
 

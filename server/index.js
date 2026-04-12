@@ -66,7 +66,7 @@ app.get('/api/health', (req, res) => {
 
 // Main STL generation endpoint
 app.post('/api/generate-stl', async (req, res) => {
-  const { text: rawText, style } = req.body;
+  const { text: rawText, style, arcRadius: rawArcRadius, baseHeight: rawBaseHeight } = req.body;
 
   // ---- VALIDATE ----
   const text = sanitizeText(rawText);
@@ -89,8 +89,12 @@ app.post('/api/generate-stl', async (req, res) => {
   activeJobs++;
   console.log(`[SERVER] Job started. Active: ${activeJobs}/${MAX_CONCURRENT_JOBS}`);
 
+  // Validate numeric params
+  const arcRadius = Math.min(200, Math.max(10, parseFloat(rawArcRadius) || 50));
+  const baseHeight = Math.min(15, Math.max(3, parseFloat(rawBaseHeight) || 5));
+
   try {
-    const result = await runPipeline(text, style || 'standard', req);
+    const result = await runPipeline(text, style || 'standard', req, { arcRadius, baseHeight });
 
     // Check if the client already disconnected
     if (req.destroyed) {

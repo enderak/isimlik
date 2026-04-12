@@ -8,11 +8,14 @@ export const SettingsCard = ({
   isItalic, setIsItalic, 
   isThicknessThick, setIsThicknessThick,
   materialColor, setMaterialColor,
+  baseColor, setBaseColor,
   plateThickness, setPlateThickness,
   tiltAngle, setTiltAngle,
   textOffset, setTextOffset,
   autoCenter, setAutoCenter,
   arcRadius, setArcRadius,
+  baseHeight, setBaseHeight,
+  targetWidth, setTargetWidth,
   onExport 
 }) => {
   const { t, i18n } = useTranslation();
@@ -46,9 +49,9 @@ export const SettingsCard = ({
             onChange={(e) => i18n.changeLanguage(e.target.value)}
           >
             <option value="TR">Türkçe (TR)</option>
+            <option value="AZ">Azərbaycanca (AZ)</option>
             <option value="EN">English (EN)</option>
             <option value="DE">Deutsch (DE)</option>
-            <option value="AZ">Azərbaycanca (AZ)</option>
           </select>
           <Globe size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
         </div>
@@ -113,21 +116,42 @@ export const SettingsCard = ({
         </div>
       </div>
 
-      {/* Filaman Rengi */}
-      <div className="flex flex-col gap-3">
-        <label className="text-[11px] font-bold text-slate-500">{t('filament_color')}</label>
-        <div className="flex gap-3">
-          {colors.map((color) => (
-            <button
-              key={color.value}
-              onClick={() => setMaterialColor(color.value)}
-              className={`w-9 h-9 rounded-full relative transition-transform hover:scale-105 ${
-                materialColor === color.value ? 'ring-2 ring-offset-2 ring-emerald-500' : ''
-              }`}
-              style={{ backgroundColor: color.value }}
-              aria-label={color.label}
-            />
-          ))}
+      {/* Renk Seçimi: Yazı ve Taban */}
+      <div className="flex flex-col gap-4">
+        {/* Yazı Rengi */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[11px] font-bold text-slate-500">{t('label_text_color')}</label>
+          <div className="flex gap-3">
+            {colors.map((color) => (
+              <button
+                key={color.value}
+                onClick={() => setMaterialColor(color.value)}
+                className={`w-8 h-8 rounded-full relative transition-transform hover:scale-110 shadow-sm ${
+                  materialColor === color.value ? 'ring-2 ring-offset-2 ring-emerald-500 scale-110' : ''
+                }`}
+                style={{ backgroundColor: color.value }}
+                aria-label={color.label}
+              />
+            ))}
+          </div>
+        </div>
+        
+        {/* Taban Rengi */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[11px] font-bold text-slate-500">{t('label_base_color')}</label>
+          <div className="flex gap-3">
+            {colors.map((color) => (
+              <button
+                key={color.value}
+                onClick={() => setBaseColor(color.value)}
+                className={`w-8 h-8 rounded-full relative transition-transform hover:scale-110 shadow-sm ${
+                  baseColor === color.value ? 'ring-2 ring-offset-2 ring-emerald-500 scale-110' : ''
+                }`}
+                style={{ backgroundColor: color.value }}
+                aria-label={color.label}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -178,10 +202,65 @@ export const SettingsCard = ({
           />
         </div>
 
+        {/* Taban Yüksekliği (Base Height) */}
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+            <span>{t('base_height')}</span>
+            <span>{baseHeight.toFixed(1)}mm</span>
+          </div>
+          <input 
+            type="range" 
+            min="3" max="15" step="0.5"
+            value={baseHeight}
+            onChange={(e) => setBaseHeight(parseFloat(e.target.value))}
+            className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 outline-none"
+          />
+        </div>
+
         {/* --- YENİ: KONUM AYARLARI --- */}
         <div className="w-full h-px bg-slate-100/80 my-1"></div>
         
-        <div className="flex flex-col gap-4">
+        {/* Üretim Uzunluğu Seçici */}
+        <div className="flex flex-col gap-2">
+          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('fixed_length')}</label>
+          <div className="bg-slate-100/80 p-1 rounded-xl flex items-center h-11 w-full relative">
+              <button 
+                onClick={() => setTargetWidth(100)}
+                className={`z-10 flex-1 text-[11px] font-bold tracking-wider rounded-lg h-full transition-colors ${
+                  targetWidth === 100 ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                10 cm
+              </button>
+              <button 
+                onClick={() => setTargetWidth(150)}
+                className={`z-10 flex-1 text-[11px] font-bold tracking-wider rounded-lg h-full transition-colors ${
+                  targetWidth === 150 ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                15 cm
+              </button>
+              <button 
+                onClick={() => setTargetWidth(200)}
+                className={`z-10 flex-1 text-[11px] font-bold tracking-wider rounded-lg h-full transition-colors ${
+                  targetWidth === 200 ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                20 cm
+              </button>
+              <button 
+                onClick={() => setTargetWidth(null)}
+                className={`z-10 flex-1 text-[11px] font-bold tracking-wider rounded-lg h-full transition-colors flex items-center justify-center gap-1 ${
+                  targetWidth === null ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'
+                }`}
+                title={t('auto_length_tooltip')}
+              >
+                {t('auto')}
+              </button>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-4 mt-2">
           <div className="flex justify-between items-center">
             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('alignment_settings')}</label>
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setAutoCenter(!autoCenter)}>
@@ -213,14 +292,26 @@ export const SettingsCard = ({
         </div>
       </div>
 
-      {/* Export Button */}
-      <button 
-        onClick={onExport}
-        className="w-full mt-2 bg-[#059669] hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-lg shadow-emerald-500/20 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-sm"
-      >
-        <Download size={18} />
-        {t('export_btn')}
-      </button>
+      {/* Export Buttons */}
+      <div className="flex flex-col gap-3 mt-2">
+        <button 
+          onClick={() => onExport(false)}
+          className="w-full bg-[#059669] hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-lg shadow-emerald-500/20 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-sm"
+        >
+          <Download size={18} />
+          {t('export_single')}
+        </button>
+        <button 
+          onClick={() => onExport(true)}
+          className="w-full bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white shadow-lg shadow-slate-900/20 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 text-sm border border-slate-700"
+        >
+          <div className="flex items-center -space-x-2 mr-1">
+            <span className="w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-slate-800 z-10"></span>
+            <span className="w-3 h-3 rounded-full bg-yellow-500 ring-2 ring-slate-800 z-0"></span>
+          </div>
+          {t('export_multi')}
+        </button>
+      </div>
 
     </div>
   );
