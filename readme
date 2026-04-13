@@ -1,0 +1,70 @@
+Bu proje, özellikle amatör telsizciler (HAM Radio) için tasarlanmış, web tabanlı ve AI destekli bir 3D İsimlik Oluşturma Platformudur. Sistem, React tabanlı modern bir arayüz ile OpenSCAD/CadQuery tabanlı bir arka uç (backend) mimarisini birleştirir.
+
+Aşağıda, projenin teknik detaylarını, kurulumunu ve kullanımını içeren kapsamlı bir README.md ve Kullanım Kılavuzu yer almaktadır.
+
+🚀 Sakrad 3D Nameplate Generator (v4.0.0)
+Bu uygulama, kullanıcıların web tarayıcısı üzerinden kendi 3D isimliklerini tasarlamalarına, 3D olarak önizlemelerine ve 3D yazıcılar için optimize edilmiş STL dosyalarını indirmelerine olanak tanır. Uygulama, karmaşık geometrileri işlemek için yapay zeka ve parametrik modelleme araçlarını (OpenSCAD & CadQuery) kullanır.
+
+✨ Özellikler
+Canlı 3D Önizleme: React Three Fiber ve Three.js kullanarak tasarımları anlık olarak görüntüleme.
+
+AI Destekli Geometri: Standart dışı metin formları için Pollinations.ai üzerinden görüntü üretimi ve vektörizasyon (Potrace & Sharp).
+
+Parametrik Tasarım: Yazı tipi kalınlığı, eğim açısı (tilt), taban yüksekliği ve kavis (arc radius) gibi detaylı ayarlar.
+
+Çift Motorlu STL Üretimi: * CadQuery: Karmaşık süpürme (sweep) ve pah kırma (chamfer) işlemleri için.
+
+OpenSCAD: Hızlı ve güvenilir fallback (yedek) mekanizması olarak.
+
+Atomik Tasarım (Atomic Design): React bileşenleri atoms, molecules ve organisms yapısında düzenlenmiştir.
+
+Çok Dilli Destek: i18next ile Türkçe ve İngilizce dil desteği.
+
+🛠️ Teknik Gereksinimler
+Sistemin çalışması için aşağıdaki yazılımların kurulu olması gerekir:
+
+Node.js (v18+)
+
+Python 3.x (CadQuery kütüphanesi ile birlikte)
+
+OpenSCAD (Sistem PATH'ine eklenmiş olmalıdır)
+
+📦 Kurulum
+1. Frontend Kurulumu
+Bash
+cd isimlik
+npm install
+npm run dev
+2. Backend (Server) Kurulumu
+Bash
+cd server
+npm install
+# .env dosyasını oluşturun ve yolları tanımlayın (OPENSCAD_PATH, PYTHON_PATH vb.)
+node index.js
+📖 Kullanım Kılavuzu
+1. İsim ve Metin Girişi
+Sol paneldeki ayarlar kartını kullanarak isimliğin üzerinde yazacak metni belirleyin. Metinler otomatik olarak büyük harfe çevrilir ve amatör telsiz çağrı işaretleri (callsign) için optimize edilmiştir.
+
+2. Geometrik Ayarlar
+Eğim (Tilt Angle): Yazının arkaya doğru yatıklığını ayarlar. Genellikle 34° masaüstü kullanımı için idealdir.
+
+Kalınlık: Yazı karakterlerinin et kalınlığını belirler.
+
+Kavis (Arc Radius): İsimliğin tabanının ne kadar kavisli olacağını belirler.
+
+3. Renk ve Malzeme Seçimi
+Arayüz üzerinden Yazı Rengi ve Taban Rengini ayrı ayrı seçebilirsiniz. Bu seçimler sadece 3D önizleme içindir; 3D yazıcınızda kullanacağınız filament renklerini hayal etmenize yardımcı olur.
+
+4. Dışa Aktarma (Export)
+STL İndir: Tasarımınızı tamamladığınızda "Export" butonuna basın.
+
+AI İşleme: Sistem, isteğinizi sunucuya gönderir. Sunucu sırasıyla; metni AI ile işler, vektöre dönüştürür ve CadQuery veya OpenSCAD kullanarak STL dosyasını oluşturur.
+
+Cura/Bambu Studio: İndirilen STL dosyasını dilimleme yazılımınıza atarak baskıya hazırlayabilirsiniz.
+
+💡 Önemli İpuçları
+Hız: Daha önce oluşturulmuş isimlikler "Cache" mekanizması sayesinde anında indirilir.
+
+Hata Giderme: Eğer CadQuery ile üretim başarısız olursa, sistem otomatik olarak OpenSCAD motoruna geçiş yaparak dosyanın her halükarda üretilmesini sağlar.
+
+Geliştirici: TA2NLE | Sakarya Amatör Telsizciler ve Radyo Amatörleri Derneği (SAKRAD)
